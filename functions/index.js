@@ -44,7 +44,7 @@ async function getPersonByName(name) {
   for (const year in data) {
     for (const categoryData of data[year]) {
       for (const nomination of categoryData.nominations) {
-        if (nomination.primary.includes(name)) {
+        if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
           result.push({ year, category: categoryData.category, nomination });
         }
       }
@@ -61,7 +61,7 @@ async function getMovieByNameAndYear(name, year) {
   const result = [];
   for (const categoryData of data) {
     for (const nomination of categoryData.nominations) {
-      if (nomination.primary.includes(name)) {
+      if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
         result.push({ category: categoryData.category, nomination });
       }
     }
@@ -77,7 +77,7 @@ async function getAwardByName(name) {
   const result = [];
   for (const year in data) {
     for (const categoryData of data[year]) {
-      if (categoryData.category.includes(name)) {
+      if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
         result.push({ year, category: categoryData.category, nominations: categoryData.nominations });
       }
     }
@@ -92,7 +92,7 @@ async function getAwardByNameAndYear(name, year) {
 
   const result = [];
   for (const categoryData of data) {
-    if (categoryData.category.includes(name)) {
+    if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
       result.push({ category: categoryData.category, nominations: categoryData.nominations });
     }
   }

@@ -1,89 +1,304 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Key Management</title>
+  <!-- Update the version number as needed -->
+  <script defer src="/__/firebase/10.1.0/firebase-app-compat.js"></script>
+  <!-- Include only the Firebase features as you need -->
+  <script defer src="/__/firebase/10.1.0/firebase-auth-compat.js"></script>
+  <script defer src="/__/firebase/10.1.0/firebase-firestore-compat.js"></script>
+  <script defer src="/__/firebase/init.js"></script>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/10.1.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/10.1.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/10.1.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+  <style>
+    body {
+      background: #000000;
+      color: #FFFFFF;
+      font-family: Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      display: flex;
+    }
+    nav {
+      color: #FFFFFF;
+      padding: 20px;
+      width: 250px;
+      height: 100vh;
+      position: fixed;
+    }
+    nav a {
+      color: #C69749;
+      text-decoration: none;
+      display: block;
+      margin: 10px 0;
+    }
+    nav a:hover {
+      color: #735F32;
+    }
+    #main {
+      margin-left: 270px;
+      padding: 20px;
+      flex: 1;
+      background: #1E1E1E;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    h1, h2, h3 {
+      color: #C69749;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: none;
+    }
+    input {
+      background: #735F32;
+      color: #FFFFFF;
+      border: 1px solid #333;
+    }
+    button {
+      width: 200px;
+      background: #C69749;
+      color: #000000;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #735F32;
+    }
+    .endpoint {
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    code {
+      background: #1E1E1E;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: #C69749;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>API Guide</h1>
+    <div id="auth-section" style="display: none;">
+      <a href="#" id="nav-signup">Sign Up / Login</a>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+    <a href="#" id="nav-guide">User Guide</a>
+    <div id="profile-section" style="display: none;">
+      <a href="#" id="nav-profile">Profile</a>
+    </div>
+  </nav>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+  <div id="main">
+    <div id="container" style="display: none;">
+      <h1>API Key Management</h1>
+      <div id="user-container">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="signup">Sign Up</button>
+        <button id="login">Login</button>
+      </div>
+      
+    </div>
 
+    <div id="user-guide">
+      <h2>API User Guide</h2>
+      <div class="endpoint" id="all-oscars">
+        <h3>Retrieve all Oscars data</h3>
+        <p><strong>Endpoint:</strong> <code>/oscars/apikey=YOUR_API_KEY</code></p>
+        <p><strong>Example Request:</strong></p>
+        <code>
+          curl https://api.uractor.com/oscars/apikey=YOUR_API_KEY
+        </code>
+        <p>Retrieves all Oscars data available in the database.</p>
+      </div>
+
+      <div class="endpoint" id="oscars-year">
+        <h3>Retrieve Oscars data for a specific year</h3>
+        <p><strong>Endpoint:</strong> <code>/oscars/year={year}/apikey=YOUR_API_KEY</code></p>
+        <p><strong>Example Request:</strong></p>
+        <code>
+          curl https://api.uractor.com/oscars/year=2024/apikey=YOUR_API_KEY
+        </code>
+        <p>Retrieves Oscars data for a specific year.</p>
+      </div>
+
+      <div class="endpoint" id="person-name">
+        <h3>Retrieve person data by name</h3>
+        <p><strong>Endpoint:</strong> <code>/person/name={name}/apikey=YOUR_API_KEY</code></p>
+        <p><strong>Example Request:</strong></p>
+        <code>
+          curl https://api.uractor.com/person/name=Emil%20Jannings/apikey=YOUR_API_KEY
+        </code>
+        <p>Retrieves data about a person by their name.</p>
+      </div>
+
+      <div class="endpoint" id="movie-name-year">
+        <h3>Retrieve movie data by name and year</h3>
+        <p><strong>Endpoint:</strong> <code>/movie/name={name}/year={year}/apikey=YOUR_API_KEY</code></p>
+        <p><strong>Example Request:</strong></p>
+        <code>
+          curl https://api.uractor.com/movie/name=The%20Last%20Command/year=1929/apikey=YOUR_API_KEY
+        </code>
+        <p>Retrieves data about a movie by its name and year.</p>
+      </div>
+
+      <div class="endpoint" id="award-name">
+        <h3>Retrieve award data by name</h3>
+        <p><strong>Endpoint:</strong> <code>/award/name={name}/apikey=YOUR_API_KEY</code></p>
+        <p><strong>Example Request:</strong></p>
+        <code>
+          curl https://api.uractor.com/award/name=Best%20Actor%20in%20a%20Leading%20Role/apikey=YOUR_API_KEY
+        </code>
+        <p>Retrieves data about an award by its name.</p>
+      </div>
+
+      <div class="endpoint" id="award-name-year">
+        <h3>Retrieve award data by name and year</h3>
+        <p><strong>Endpoint:</strong> <code>/award/name={name}/year={year}/apikey=YOUR_API_KEY</code></p>
+        <p><strong>Example Request:</strong></p>
+        <code>
+          curl https://api.uractor.com/award/name=Best%20Actor%20in%20a%20Leading%20Role/year=1929/apikey=YOUR_API_KEY
+        </code>
+        <p>Retrieves data about an award by its name and year.</p>
+      </div>
+    </div>
+
+    <div id="profile" style="display: none;">
+      <h2>Profile</h2>
+      <div id="profile-api-key-container">
+        <h3>Your API Key</h3>
+        <div id="profile-api-key"></div>
+      </div>
+      <button id="profile-logout">Logout</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const auth = firebase.auth();
+      const firestore = firebase.firestore();
+
+      const userContainer = document.getElementById('user-container');
+      const profileApiKeyDisplay = document.getElementById('profile-api-key');
+
+      const navGuide = document.getElementById('nav-guide');
+      const navProfile = document.getElementById('nav-profile');
+      const navSingup = document.getElementById('nav-signup');
+      
+      const authSection = document.getElementById('auth-section');
+      const profileSection = document.getElementById('profile-section');
+      const userGuide = document.getElementById('user-guide');
+      const profile = document.getElementById('profile');
+      const container = document.getElementById('container');
+
+      navGuide.addEventListener('click', () => {
+        container.style.display = 'none';
+        userGuide.style.display = 'block';
+        userContainer.style.display = 'none';
+        profile.style.display = 'none';
+      });
+
+      navProfile.addEventListener('click', () => {
+        container.style.display = 'none';
+        userGuide.style.display = 'none';
+        userContainer.style.display = 'none';
+        profile.style.display = 'block';
+      });
+
+      navSingup.addEventListener('click', () => {
+        container.style.display = 'block';
+        userGuide.style.display = 'none';
+        userContainer.style.display = 'block';
+        profile.style.display = 'none';
+      });
+
+      document.getElementById('signup').addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
         try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          const userId = userCredential.user.uid;
+          const apiKey = generateApiKey();
+          await firestore.collection('users').doc(userId).set({"apiKey": apiKey});
+          await firestore.collection('apiKeys').doc(apiKey).set({"user": userId});
+          displayApiKey(apiKey);
+          profileSection.style.display = 'block';
+          profileApiKeyDisplay.textContent = apiKey;
+        } catch (error) {
+          console.error('Error signing up:', error);
         }
       });
-    </script>
-  </body>
+
+      document.getElementById('login').addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        try {
+          const userCredential = await auth.signInWithEmailAndPassword(email, password);
+          const userId = userCredential.user.uid;
+          const doc = await firestore.collection('users').doc(userId).get();
+          if (doc.exists) {
+            const apiKey = doc.data().apiKey;
+            displayApiKey(apiKey);
+            profileSection.style.display = 'block';
+            profileApiKeyDisplay.textContent = apiKey;
+          } else {
+            console.error('No API key found for this user.');
+          }
+        } catch (error) {
+          console.error('Error logging in:', error);
+        }
+      });
+
+
+      document.getElementById('profile-logout').addEventListener('click', () => {
+        auth.signOut().then(() => {
+          container.style.display = 'block';
+          userContainer.style.display = 'block';
+          userGuide.style.display = 'none';
+          profile.style.display = 'none';
+          profileSection.style.display = 'none';
+        });
+      });
+
+      function displayApiKey(apiKey) {
+        userContainer.style.display = 'none';
+        profileSection.style.display = 'block';
+        profileApiKeyDisplay.textContent = apiKey;
+      }
+
+      function generateApiKey() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          const userId = user.uid;
+          firestore.collection('users').doc(userId).get().then(doc => {
+            if (doc.exists) {
+              const apiKey = doc.data().apiKey;
+              displayApiKey(apiKey);
+              profileSection.style.display = 'block';
+              profileApiKeyDisplay.textContent = apiKey;
+              authSection.style.display = 'none';
+            }
+          });
+        } else {
+          // User is signed out
+          container.style.display = 'block';
+          userGuide.style.display = 'none';
+          profile.style.display = 'none';
+          profileSection.style.display = 'none';
+          authSection.style.display = 'block';
+        }
+      });
+    });
+  </script>
+</body>
 </html>
