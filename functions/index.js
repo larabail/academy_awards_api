@@ -44,7 +44,8 @@ async function getPersonByName(name) {
   for (const year in data) {
     for (const categoryData of data[year]) {
       for (const nomination of categoryData.nominations) {
-        if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
+        if ((nomination.primary && nomination.primary.includes(name)) ||
+          (nomination.secondary && nomination.secondary.includes(name))) {
           result.push({ year, category: categoryData.category, nomination });
         }
       }
@@ -61,7 +62,8 @@ async function getMovieByNameAndYear(name, year) {
   const result = [];
   for (const categoryData of data) {
     for (const nomination of categoryData.nominations) {
-      if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
+      if ((nomination.primary && nomination.primary.includes(name)) ||
+        (nomination.secondary && nomination.secondary.includes(name))) {
         result.push({ category: categoryData.category, nomination });
       }
     }
@@ -77,7 +79,8 @@ async function getAwardByName(name) {
   const result = [];
   for (const year in data) {
     for (const categoryData of data[year]) {
-      if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
+      if ((nomination.primary && nomination.primary.includes(name)) ||
+        (nomination.secondary && nomination.secondary.includes(name))) {
         result.push({ year, category: categoryData.category, nominations: categoryData.nominations });
       }
     }
@@ -92,7 +95,8 @@ async function getAwardByNameAndYear(name, year) {
 
   const result = [];
   for (const categoryData of data) {
-    if (nomination.primary.includes(name) || nomination.secondary.includes(name)) {
+    if ((nomination.primary && nomination.primary.includes(name)) ||
+      (nomination.secondary && nomination.secondary.includes(name))) {
       result.push({ category: categoryData.category, nominations: categoryData.nominations });
     }
   }
@@ -113,7 +117,6 @@ app.get('/oscars/apikey=:apikey', checkApiKey, async (req, res) => {
 
 app.get('/oscars/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
   const year = req.params.year;
-  const apikey = req.params.apikey
   try {
     const ref = db.ref(`/oscars/${year}`);
     const snapshot = await ref.once('value');
@@ -131,7 +134,6 @@ app.get('/oscars/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
 
 app.get('/person/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
-  const apikey = req.params.apikey
   try {
     const data = await getPersonByName(name);
     if (!data.length) {
@@ -147,7 +149,6 @@ app.get('/person/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
 
 app.get('/movie/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
-  const apikey = req.params.apikey
   const year = req.params.year;
   try {
     const data = await getMovieByNameAndYear(name, year);
@@ -164,7 +165,6 @@ app.get('/movie/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, 
 
 app.get('/award/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
-  const apikey = req.params.apikey
   try {
     const data = await getAwardByName(name);
     if (!data.length) {
@@ -180,7 +180,6 @@ app.get('/award/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
 
 app.get('/award/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
-  const apikey = req.params.apikey
   const year = req.params.year;
   try {
     const data = await getAwardByNameAndYear(name, year);
