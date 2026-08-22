@@ -4,10 +4,14 @@ on:
   pull_request:
     branches: [master]
 
-# Only the preview comment needs write access; everything else is read-only.
+# The preview job writes: a comment on the pull request, and a check run that
+# the Firebase action creates to report the deploy. Both need granting
+# explicitly, and the check run is easy to miss because the failure it produces
+# names neither checks nor the action.
 permissions:
   contents: read
   pull-requests: write
+  checks: write
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
