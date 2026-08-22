@@ -21,8 +21,11 @@ developer portal. The portal is an Astro static site.
 Firebase project: `uractordeveloper`. Awards data lives in Realtime Database
 under `/oscars`; API keys live in Firestore (`apiKeys`, `users`).
 
-Licensed [MIT](LICENSE). Not affiliated with the Academy of Motion Picture Arts
-and Sciences.
+Licensed [AGPL-3.0](LICENSE) — free to use, modify and redistribute, including
+commercially, but a modified version run as a network service must offer its
+source to that service's users. See [NOTICE](NOTICE) for what that means, data
+provenance, and trademarks. Not affiliated with the Academy of Motion Picture
+Arts and Sciences.
 
 Contributing? [AGENTS.md](AGENTS.md) is the working agreement — branch naming,
 commit convention, what CI enforces, and the traps this project has already
