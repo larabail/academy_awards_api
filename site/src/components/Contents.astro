@@ -1,0 +1,58 @@
+---
+/** The programme contents: guides in roman numerals, endpoints numbered. */
+import { guides, endpoints } from '../data/api';
+import { canonicalPath } from '../lib/path';
+
+const here = canonicalPath(Astro.url.pathname);
+const isCurrent = (href: string) => (here === href ? 'page' : undefined);
+---
+
+<nav class="contents" aria-label="Documentation">
+  <h2>The basics</h2>
+  <ol>
+    {
+      guides.map((g) => (
+        <li>
+          <a href={`/docs/${g.slug}`} aria-current={isCurrent(`/docs/${g.slug}`)}>
+            <span class="num" aria-hidden="true">
+              {g.number}
+            </span>
+            <span>{g.title}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+
+  <h2>The categories</h2>
+  <ol>
+    <li>
+      <a href="/reference" aria-current={isCurrent('/reference')}>
+        <span class="num" aria-hidden="true">&#9733;</span>
+        <span>All endpoints</span>
+      </a>
+    </li>
+    {
+      endpoints.map((e) => (
+        <li>
+          <a href={`/reference/${e.slug}`} aria-current={isCurrent(`/reference/${e.slug}`)}>
+            <span class="num" aria-hidden="true">
+              {e.number}
+            </span>
+            <span>{e.title}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+
+  <h2>Your key</h2>
+  <ol>
+    <li>
+      <a href="/account" aria-current={isCurrent('/account')}>
+        <span class="num" aria-hidden="true">&#9993;</span>
+        <span>Request &amp; rotate</span>
+      </a>
+    </li>
+  </ol>
+</nav>

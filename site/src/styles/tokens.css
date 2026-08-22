@@ -1,0 +1,60 @@
+/*
+ * The Envelope — an Academy ceremony programme.
+ *
+ * Navy cover stock, gold foil stamping, cream insert pages. Gold gradients are
+ * used only on decorative surfaces (rules, seals, borders); every colour that
+ * carries text is a solid value chosen to clear WCAG AA against its background.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Cover stock */
+  --ink: #0e1626;
+  --ink-deep: #080d17;
+  --ink-raised: #16223a;
+  --ink-line: #26344f;
+
+  /* Insert pages */
+  --card: #f4ebdc;
+  --card-edge: #e2d4bd;
+  --card-ink: #1c1710;
+  --card-muted: #5c5142;
+
+  /* Foil — 10.7:1 on --ink */
+  --foil: #e3c567;
+  --foil-deep: #c9a227;
+  --foil-dim: #8a7327;
+  --foil-sheen: linear-gradient(
+    100deg,
+    #8a6f1c 0%,
+    #d8bb62 22%,
+    #f7edc4 38%,
+    #d0aa41 55%,
+    #8f7420 78%,
+    #d8bb62 100%
+  );
+
+  /* Wax seal */
+  --wax: #8c2f23;
+  --wax-light: #b64335;
+
+  /* Text on cover stock */
+  --text: #f2ece0;
+  --text-muted: #a9b4c8;
+
+  /* Method + status hues, all AA on --ink */
+  --ok: #7fd1a3;
+  --warn: #e9b871;
+  --bad: #f09a90;
+
+  --rule: 1px solid var(--ink-line);
+  --radius: 2px;
+
+  --serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --measure: 34rem;
+  --sidebar: 17rem;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+}

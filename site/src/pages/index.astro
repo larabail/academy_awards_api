@@ -1,0 +1,242 @@
+---
+import Base from '../layouts/Base.astro';
+import Panel from '../components/Panel.astro';
+import { endpoints, DATASET, API_BASE, exampleCurl } from '../data/api';
+
+const first = endpoints[1]; // A single ceremony — the best starting point.
+---
+
+<Base
+  title="UrActor Academy Awards API — every Oscar since 1929"
+  description={`A free JSON API for Academy Awards data: ${DATASET.ceremonies} ceremonies from ${DATASET.firstYear} to ${DATASET.lastYear}, with nominees, winners and category history.`}
+  section="home"
+>
+  <main id="main">
+    <section class="cover">
+      <div class="cover-inner">
+        <p class="eyebrow">UrActor presents</p>
+        <h1>The Academy Awards, as JSON.</h1>
+        <p class="lede">
+          Oscars data is the kind of thing that sounds easy to get hold of and isn&rsquo;t. This is a
+          free API that serves it &mdash; {DATASET.ceremonies} ceremonies, every nominee, every winner,
+          every renaming of every category &mdash; so you can query it instead of scraping for it.
+        </p>
+
+        <div class="actions">
+          <a class="btn" href="/account">Request a key</a>
+          <a class="btn ghost" href="/docs/getting-started">Read the guide</a>
+        </div>
+
+        <dl class="ledger">
+          <div>
+            <dt>Ceremonies</dt><dd>{DATASET.ceremonies}</dd>
+          </div>
+          <div>
+            <dt>Earliest</dt><dd>{DATASET.firstYear}</dd>
+          </div>
+          <div>
+            <dt>Latest</dt><dd>{DATASET.lastYear}</dd>
+          </div>
+          <div>
+            <dt>Price</dt><dd>Free</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="home-body">
+      <section aria-labelledby="quickstart">
+        <hr class="rule" aria-hidden="true" />
+        <h2 id="quickstart">Three steps</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-num" aria-hidden="true">01</span>
+            <div>
+              <h3>Take a key</h3>
+              <p class="muted">
+                Sign in on the <a href="/account">key page</a> and one is issued to you immediately.
+                No application form, no waiting.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num" aria-hidden="true">02</span>
+            <div>
+              <h3>Put it in the path</h3>
+              <p class="muted">
+                This API carries the key as the last path segment rather than a query string or a
+                header. Every route ends <code>/apikey=YOUR_KEY</code>.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num" aria-hidden="true">03</span>
+            <div>
+              <h3>Ask for a ceremony</h3>
+              <p class="muted">Everything comes back as JSON, no envelope object around it.</p>
+            </div>
+          </li>
+        </ol>
+
+        <Panel label="Your first request" code={exampleCurl(first)} />
+      </section>
+
+      <section aria-labelledby="categories">
+        <hr class="rule" aria-hidden="true" />
+        <h2 id="categories">The categories</h2>
+        <p class="muted">Six endpoints. All of them read-only, all of them JSON.</p>
+        <ul class="cards">
+          {
+            endpoints.map((e) => (
+              <li>
+                <a href={`/reference/${e.slug}`}>
+                  <span class="num">&#8470; {e.number}</span>
+                  <h3>{e.title}</h3>
+                  <p>{e.summary}</p>
+                  <code>
+                    {e.method} {e.path}
+                  </code>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section aria-labelledby="honest">
+        <hr class="rule" aria-hidden="true" />
+        <h2 id="honest">What this is not</h2>
+        <p class="muted">
+          It is one person&rsquo;s side project, served from Firebase, free of charge. There is no
+          uptime guarantee and no support contract. If you are building something that must not
+          break, cache what you take from here. The base URL is <code>{API_BASE}</code>, and the
+          machine-readable description lives at <a href="/openapi.json">/openapi.json</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+</Base>
+
+<style>
+  /*
+   * The cover: a programme front page. The double gold rule top and bottom is
+   * the only ornament that earns its place at this size.
+   */
+  .cover {
+    border-bottom: 1px solid var(--ink-line);
+    padding: clamp(3rem, 9vw, 6rem) var(--gutter) clamp(2.5rem, 6vw, 4rem);
+    position: relative;
+  }
+
+  .cover::before,
+  .cover::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--foil-dim) 20%, var(--foil-dim) 80%, transparent);
+  }
+
+  .cover::before {
+    top: 0;
+  }
+
+  .cover::after {
+    bottom: 4px;
+  }
+
+  .cover-inner {
+    max-width: 82rem;
+    margin: 0 auto;
+  }
+
+  .cover h1 {
+    font-size: clamp(2.4rem, 7vw, 4.6rem);
+    line-height: 1.02;
+    margin: 0 0 1.25rem;
+    max-width: 15ch;
+  }
+
+  .ledger {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 clamp(1.5rem, 5vw, 4rem);
+    margin: 2.5rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--ink-line);
+  }
+
+  .ledger div {
+    margin: 0;
+  }
+
+  .ledger dt {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--foil-deep);
+    font-weight: 700;
+  }
+
+  .ledger dd {
+    margin: 0.15rem 0 0;
+    font-size: 1.6rem;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .home-body {
+    max-width: 82rem;
+    margin: 0 auto;
+    padding: 0 var(--gutter) 4rem;
+  }
+
+  .steps {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 48rem) {
+    .steps {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .steps li {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: var(--foil-deep);
+    font-weight: 700;
+    border-top: 1px solid var(--foil-dim);
+    padding-top: 0.4rem;
+    min-width: 1.9rem;
+  }
+
+  .steps h3 {
+    margin: 0.1rem 0 0.35rem;
+    font-size: 1rem;
+    color: var(--foil);
+  }
+
+  .steps p {
+    margin: 0;
+    font-size: 0.94rem;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    color: var(--foil);
+    overflow-wrap: anywhere;
+  }
+</style>

@@ -1,4 +1,6 @@
-const functions = require('firebase-functions');
+// Pinned to the v1 API so the deployed function keeps its existing trigger
+// shape and URL; firebase-functions v6 defaults its root export to v2.
+const functions = require('firebase-functions/v1');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -28,6 +30,118 @@ admin.initializeApp({
 
 const db = admin.database();
 const firestore = admin.firestore();
+
+const { randomUUID } = require('crypto');
+
+/**
+ * Account endpoints below let a signed-in user manage their own key. They exist
+ * so the browser never touches Firestore directly: the security rules stay
+ * closed, and the only way to reach the key store is through a request whose
+ * Firebase ID token has been verified here.
+ */
+async function requireUser(req, res, next) {
+  // Firebase Hosting puts a default max-age on function responses, which for an
+  // authenticated endpoint would let the CDN serve one user's key to another.
+  // Every account response must be uncacheable, including the failures.
+  res.set('Cache-Control', 'no-store, private');
+  res.set('Vary', 'Authorization');
+
+  const header = req.get('Authorization') || '';
+  const match = header.match(/^Bearer (.+)$/);
+  if (!match) {
+    return res.status(401).json({ error: 'Unauthorized - sign in first' });
+  }
+  try {
+    req.user = await admin.auth().verifyIdToken(match[1]);
+    return next();
+  } catch (error) {
+    console.error('Error verifying ID token:', error.message);
+    return res.status(401).json({ error: 'Unauthorized - invalid session' });
+  }
+}
+
+/** Issues a key and points it back at the owner, replacing any previous key. */
+async function issueKey(uid, email) {
+  const userRef = firestore.collection('users').doc(uid);
+  const snapshot = await userRef.get();
+  const previousKey = snapshot.exists ? snapshot.data().apiKey : undefined;
+
+  const apiKey = randomUUID();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  const batch = firestore.batch();
+  batch.set(firestore.collection('apiKeys').doc(apiKey), { user: uid, createdAt: now });
+  if (previousKey && previousKey !== apiKey) {
+    batch.delete(firestore.collection('apiKeys').doc(previousKey));
+  }
+  batch.set(userRef, { apiKey, email: email || null, updatedAt: now }, { merge: true });
+  await batch.commit();
+
+  return apiKey;
+}
+
+app.get('/v1/account/key', requireUser, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('users').doc(req.user.uid).get();
+    const apiKey = snapshot.exists ? snapshot.data().apiKey : undefined;
+    if (!apiKey) {
+      return res.status(404).json({ error: 'No key issued yet' });
+    }
+    return res.status(200).json({ apiKey });
+  } catch (error) {
+    console.error('Error reading key:', error);
+    return res.status(500).json({ error: 'Error reading key' });
+  }
+});
+
+// Issues a first key, or returns the existing one so the call is safe to repeat.
+app.post('/v1/account/key', requireUser, async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('users').doc(req.user.uid).get();
+    const existing = snapshot.exists ? snapshot.data().apiKey : undefined;
+    if (existing) {
+      return res.status(200).json({ apiKey: existing, created: false });
+    }
+    const apiKey = await issueKey(req.user.uid, req.user.email);
+    return res.status(201).json({ apiKey, created: true });
+  } catch (error) {
+    console.error('Error issuing key:', error);
+    return res.status(500).json({ error: 'Error issuing key' });
+  }
+});
+
+app.post('/v1/account/key/rotate', requireUser, async (req, res) => {
+  try {
+    const apiKey = await issueKey(req.user.uid, req.user.email);
+    return res.status(200).json({ apiKey, rotated: true });
+  } catch (error) {
+    console.error('Error rotating key:', error);
+    return res.status(500).json({ error: 'Error rotating key' });
+  }
+});
+
+app.delete('/v1/account/key', requireUser, async (req, res) => {
+  try {
+    const userRef = firestore.collection('users').doc(req.user.uid);
+    const snapshot = await userRef.get();
+    const apiKey = snapshot.exists ? snapshot.data().apiKey : undefined;
+    if (!apiKey) {
+      return res.status(404).json({ error: 'No key issued yet' });
+    }
+    const batch = firestore.batch();
+    batch.delete(firestore.collection('apiKeys').doc(apiKey));
+    batch.set(
+      userRef,
+      { apiKey: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    await batch.commit();
+    return res.status(200).json({ revoked: true });
+  } catch (error) {
+    console.error('Error revoking key:', error);
+    return res.status(500).json({ error: 'Error revoking key' });
+  }
+});
 
 async function checkApiKey(req, res, next) {
   const apiKey = req.params.apikey;

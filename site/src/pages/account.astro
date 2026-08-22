@@ -1,0 +1,542 @@
+---
+import Base from '../layouts/Base.astro';
+import Contents from '../components/Contents.astro';
+import { API_BASE } from '../data/api';
+---
+
+<Base
+  title="Your API key"
+  description="Request, reveal and rotate your key for the UrActor Academy Awards API."
+  section="account"
+  noindex={true}
+>
+  <div class="shell">
+    <Contents />
+
+    <main id="main">
+      <span class="eyebrow">And the winner is</span>
+      <h1>Your API key</h1>
+      <p class="lede">
+        Sign in and a key is issued to you immediately. You can rotate it whenever you like &mdash;
+        rotation is instant and the old key stops working at once.
+      </p>
+
+      <noscript>
+        <div class="note">
+          <span class="eyebrow">JavaScript required</span>
+          <p>
+            This page signs you in and talks to the key service, so it needs JavaScript. Everything
+            else on this site works without it &mdash; start with the
+            <a href="/docs/getting-started">guide</a>.
+          </p>
+        </div>
+      </noscript>
+
+      <!-- Announcements for screen readers and a visible status line. -->
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+
+      <!-- ---------------------------------------------------------- signed out -->
+      <section id="view-auth" hidden aria-labelledby="auth-heading">
+        <hr class="rule" aria-hidden="true" />
+        <h2 id="auth-heading">Sign in</h2>
+        <form id="auth-form" class="auth-form" novalidate>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              minlength="6"
+              required
+            />
+            <p class="hint" id="password-hint">At least six characters.</p>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit" data-action="signin">Sign in</button>
+            <button class="btn ghost" type="button" data-action="signup">Create an account</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ----------------------------------------------------------- signed in -->
+      <section id="view-key" hidden aria-labelledby="key-heading">
+        <hr class="rule" aria-hidden="true" />
+        <h2 id="key-heading" class="visually-hidden">Your key</h2>
+
+        <div class="envelope" id="envelope" data-state="sealed">
+          <div class="env-pocket" aria-hidden="true">
+            <div class="env-flap">
+              <span class="seal"><span class="seal-star">&#9733;</span></span>
+            </div>
+          </div>
+
+          <div class="env-card" id="env-card">
+            <span class="eyebrow">Academy Awards API &mdash; key</span>
+            <p class="keyline"><code id="key-value">&mdash;</code></p>
+            <p class="issued muted" id="key-meta"></p>
+          </div>
+        </div>
+
+        <div class="actions" id="key-actions">
+          <button class="btn" type="button" id="btn-issue" hidden>Request your key</button>
+          <button class="btn" type="button" id="btn-copy" hidden>Copy key</button>
+          <button class="btn ghost" type="button" id="btn-rotate" hidden>Rotate</button>
+          <button class="btn danger" type="button" id="btn-revoke" hidden>Revoke</button>
+        </div>
+
+        <div class="note" id="rotate-warning" hidden>
+          <span class="eyebrow">Rotating replaces the key immediately</span>
+          <p>
+            There is no overlap window. Anything still sending the old key starts getting
+            <code>403</code> the moment you confirm.
+          </p>
+          <div class="actions">
+            <button class="btn danger" type="button" id="btn-rotate-confirm">Yes, rotate now</button>
+            <button class="btn ghost" type="button" id="btn-rotate-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <div class="note" id="revoke-warning" hidden>
+          <span class="eyebrow">Revoking leaves you with no key</span>
+          <p>Your account stays, but every request starts failing until you request a new key.</p>
+          <div class="actions">
+            <button class="btn danger" type="button" id="btn-revoke-confirm">Yes, revoke</button>
+            <button class="btn ghost" type="button" id="btn-revoke-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <hr class="rule" aria-hidden="true" />
+        <p class="muted">
+          Signed in as <strong id="who"></strong>.
+          <button class="linkish" type="button" id="btn-signout">Sign out</button>
+        </p>
+
+        <div class="note">
+          <span class="eyebrow">Using it</span>
+          <p>
+            The key is the last path segment of every request, not a header. See
+            <a href="/docs/authentication">authentication</a> for what that implies.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+</Base>
+
+<style>
+  .status {
+    min-height: 1.5rem;
+    margin: 1rem 0 0;
+    font-size: 0.92rem;
+    color: var(--foil);
+  }
+
+  .status[data-tone='error'] {
+    color: var(--bad);
+  }
+
+  .auth-form {
+    max-width: 24rem;
+  }
+
+  .field {
+    margin: 0 0 1.1rem;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--foil-deep);
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--ink-deep);
+    border: 1px solid var(--ink-line);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .field input:focus-visible {
+    border-color: var(--foil);
+  }
+
+  .hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.35rem 0 0;
+  }
+
+  .linkish {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--foil);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /*
+   * The envelope. The pocket and flap are decorative; the card inside carries
+   * the real content, so the key is always available to assistive technology
+   * regardless of which state the envelope is in.
+   */
+  .envelope {
+    position: relative;
+    max-width: 30rem;
+    margin: 2rem 0;
+    padding-top: 1rem;
+  }
+
+  .env-pocket {
+    position: relative;
+    aspect-ratio: 8 / 5;
+    background: linear-gradient(170deg, #f7f0e2, #e6d9c1);
+    border: 1px solid #cbb996;
+    border-radius: 3px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+  }
+
+  /* The lower paper folds, drawn with two large triangles. */
+  .env-pocket::before,
+  .env-pocket::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 60%;
+    height: 78%;
+    background: linear-gradient(200deg, #efe6d3, #ddcfb4);
+  }
+
+  .env-pocket::before {
+    left: 0;
+    clip-path: polygon(0 100%, 0 0, 100% 100%);
+    border-right: 1px solid #cbb996;
+  }
+
+  .env-pocket::after {
+    right: 0;
+    clip-path: polygon(100% 100%, 100% 0, 0 100%);
+  }
+
+  .env-flap {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 62%;
+    background: linear-gradient(185deg, #fbf5e9, #e9dcc4);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center;
+    transform: rotateX(0deg);
+    transition: transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    z-index: 3;
+    display: grid;
+    place-items: center;
+  }
+
+  .envelope[data-state='open'] .env-flap {
+    transform: rotateX(-172deg);
+  }
+
+  .seal {
+    position: relative;
+    top: -12%;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--wax-light), var(--wax) 60%, #6d221a);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    display: grid;
+    place-items: center;
+    color: #f0cfc9;
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .envelope[data-state='open'] .seal {
+    /* Keep the star upright once the flap has folded back. */
+    transform: rotate(180deg);
+  }
+
+  .env-card {
+    position: relative;
+    z-index: 2;
+    margin: -46% 1.25rem 0;
+    background: var(--card);
+    color: var(--card-ink);
+    border: 1px solid var(--card-edge);
+    border-radius: 2px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transform: translateY(0);
+    transition:
+      transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      opacity 400ms ease 200ms;
+  }
+
+  .envelope[data-state='open'] .env-card {
+    opacity: 1;
+    transform: translateY(-38%);
+  }
+
+  .env-card .eyebrow {
+    color: #8a6a1d;
+  }
+
+  .keyline {
+    margin: 0.25rem 0 0;
+  }
+
+  .keyline code {
+    font-family: var(--mono);
+    font-size: clamp(0.82rem, 2.6vw, 1rem);
+    color: #4a3a12;
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+
+  .issued {
+    font-size: 0.78rem;
+    margin: 0.5rem 0 0;
+    color: var(--card-muted);
+  }
+
+  /* Without motion the envelope simply presents as open. */
+  @media (prefers-reduced-motion: reduce) {
+    .env-flap,
+    .env-card {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline define:vars={{ API_BASE }}>
+  const $ = (id) => document.getElementById(id);
+  const status = $('status');
+
+  function say(message, tone) {
+    status.textContent = message || '';
+    if (tone) status.dataset.tone = tone;
+    else delete status.dataset.tone;
+  }
+
+  function show(el, on) {
+    if (el) el.hidden = !on;
+  }
+
+  say('Loading\u2026');
+
+  // Firebase Hosting serves the SDK and this project's config from reserved
+  // URLs, so no keys or project identifiers are checked into the site source.
+  function load(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  (async () => {
+    try {
+      await load('/__/firebase/10.1.0/firebase-app-compat.js');
+      await load('/__/firebase/10.1.0/firebase-auth-compat.js');
+      await load('/__/firebase/init.js');
+    } catch (error) {
+      say('Could not load the sign-in service. Please refresh.', 'error');
+      return;
+    }
+
+    const auth = firebase.auth();
+
+    const viewAuth = $('view-auth');
+    const viewKey = $('view-key');
+    const envelope = $('envelope');
+    const keyValue = $('key-value');
+    const keyMeta = $('key-meta');
+
+    const btnIssue = $('btn-issue');
+    const btnCopy = $('btn-copy');
+    const btnRotate = $('btn-rotate');
+    const btnRevoke = $('btn-revoke');
+    const rotateWarning = $('rotate-warning');
+    const revokeWarning = $('revoke-warning');
+
+    async function call(path, method) {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Not signed in');
+      const token = await user.getIdToken();
+      const response = await fetch(API_BASE + path, {
+        method: method || 'GET',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const body = await response.json().catch(() => ({}));
+      return { ok: response.ok, status: response.status, body };
+    }
+
+    function renderKey(apiKey) {
+      const has = Boolean(apiKey);
+      keyValue.textContent = has ? apiKey : 'No key issued yet';
+      keyMeta.textContent = has ? 'Keep this out of public repositories.' : '';
+      envelope.dataset.state = has ? 'open' : 'sealed';
+      show(btnIssue, !has);
+      show(btnCopy, has);
+      show(btnRotate, has);
+      show(btnRevoke, has);
+      show(rotateWarning, false);
+      show(revokeWarning, false);
+    }
+
+    async function refresh() {
+      say('Checking for a key\u2026');
+      const { ok, status: code, body } = await call('/v1/account/key');
+      if (ok) {
+        renderKey(body.apiKey);
+        say('');
+      } else if (code === 404) {
+        renderKey(null);
+        say('You do not have a key yet.');
+      } else {
+        say(body.error || 'Could not read your key.', 'error');
+      }
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      show(viewAuth, !user);
+      show(viewKey, Boolean(user));
+      if (!user) {
+        say('');
+        return;
+      }
+      $('who').textContent = user.email || 'your account';
+      try {
+        await refresh();
+      } catch (error) {
+        say(error.message, 'error');
+      }
+    });
+
+    $('auth-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      submit('signin');
+    });
+
+    document.querySelector('[data-action="signup"]').addEventListener('click', () => submit('signup'));
+
+    async function submit(mode) {
+      const email = $('email').value.trim();
+      const password = $('password').value;
+      if (!email || password.length < 6) {
+        say('Enter an email address and a password of at least six characters.', 'error');
+        return;
+      }
+      say(mode === 'signup' ? 'Creating your account\u2026' : 'Signing in\u2026');
+      try {
+        if (mode === 'signup') {
+          await auth.createUserWithEmailAndPassword(email, password);
+          // A brand new account gets a key straight away.
+          const { ok, body } = await call('/v1/account/key', 'POST');
+          if (ok) renderKey(body.apiKey);
+        } else {
+          await auth.signInWithEmailAndPassword(email, password);
+        }
+        say('');
+      } catch (error) {
+        say(friendly(error), 'error');
+      }
+    }
+
+    function friendly(error) {
+      const code = (error && error.code) || '';
+      if (code.includes('email-already-in-use')) return 'That email already has an account — sign in instead.';
+      if (code.includes('invalid-credential') || code.includes('wrong-password'))
+        return 'That email and password do not match an account.';
+      if (code.includes('user-not-found')) return 'No account with that email — create one instead.';
+      if (code.includes('weak-password')) return 'Please choose a longer password.';
+      if (code.includes('invalid-email')) return 'That does not look like an email address.';
+      if (code.includes('too-many-requests')) return 'Too many attempts. Wait a moment and try again.';
+      return (error && error.message) || 'Something went wrong.';
+    }
+
+    btnIssue.addEventListener('click', async () => {
+      say('Issuing your key\u2026');
+      const { ok, body } = await call('/v1/account/key', 'POST');
+      if (ok) {
+        renderKey(body.apiKey);
+        say('Key issued.');
+      } else {
+        say(body.error || 'Could not issue a key.', 'error');
+      }
+    });
+
+    btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(keyValue.textContent);
+        say('Key copied to the clipboard.');
+      } catch {
+        say('Could not copy — select the key and copy it manually.', 'error');
+      }
+    });
+
+    btnRotate.addEventListener('click', () => {
+      show(rotateWarning, true);
+      show(revokeWarning, false);
+      $('btn-rotate-confirm').focus();
+    });
+
+    $('btn-rotate-cancel').addEventListener('click', () => {
+      show(rotateWarning, false);
+      btnRotate.focus();
+    });
+
+    $('btn-rotate-confirm').addEventListener('click', async () => {
+      say('Rotating\u2026');
+      const { ok, body } = await call('/v1/account/key/rotate', 'POST');
+      if (ok) {
+        renderKey(body.apiKey);
+        say('Rotated. The previous key no longer works.');
+      } else {
+        say(body.error || 'Could not rotate the key.', 'error');
+      }
+    });
+
+    btnRevoke.addEventListener('click', () => {
+      show(revokeWarning, true);
+      show(rotateWarning, false);
+      $('btn-revoke-confirm').focus();
+    });
+
+    $('btn-revoke-cancel').addEventListener('click', () => {
+      show(revokeWarning, false);
+      btnRevoke.focus();
+    });
+
+    $('btn-revoke-confirm').addEventListener('click', async () => {
+      say('Revoking\u2026');
+      const { ok, body } = await call('/v1/account/key', 'DELETE');
+      if (ok) {
+        renderKey(null);
+        say('Key revoked.');
+      } else {
+        say(body.error || 'Could not revoke the key.', 'error');
+      }
+    });
+
+    $('btn-signout').addEventListener('click', () => auth.signOut());
+  })();
+</script>

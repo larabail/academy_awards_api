@@ -1,0 +1,107 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+import { API_BASE, DATASET } from '../../data/api';
+---
+
+<DocPage
+  title="Limits and fair use"
+  description="No hard rate limit, no uptime guarantee, and a request to cache. How to use the free UrActor Academy Awards API considerately."
+  eyebrow="The basics &#8212; V"
+>
+  <p class="lede">
+    There is no rate limiter and no quota. That is not a promise &mdash; it is the current state of a
+    free side project, and it holds for exactly as long as nobody abuses it.
+  </p>
+
+  <h2 id="ask">What is asked of you</h2>
+  <ul>
+    <li><strong>Cache.</strong> The archive changes once a year, in March. Treat it as static.</li>
+    <li>
+      <strong>Do not poll.</strong> Nothing here updates in real time. A nightly refresh is already
+      more often than the data changes.
+    </li>
+    <li>
+      <strong>Take the narrow endpoint.</strong> Fetching the whole archive to read one year moves
+      several megabytes to answer a question that a single ceremony request would have answered.
+    </li>
+    <li>
+      <strong>Back off on 500s.</strong> Retrying hard against a struggling backend is how a small
+      problem becomes an outage.
+    </li>
+  </ul>
+
+  <div class="note">
+    <span class="eyebrow">If you need more</span>
+    <p>
+      Building something that needs sustained or high-volume access? Say so before you start rather
+      than after &mdash; it is a solvable problem, and much easier to solve in advance.
+    </p>
+  </div>
+
+  <h2 id="size">Response sizes</h2>
+  <table>
+    <caption>Rough guide to what each endpoint moves</caption>
+    <thead>
+      <tr>
+        <th scope="col">Request</th>
+        <th scope="col">Scope</th>
+        <th scope="col">Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row"><code>/oscars</code></th>
+        <td>All {DATASET.ceremonies} ceremonies</td>
+        <td>Megabytes</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>/oscars/year=</code></th>
+        <td>One ceremony, ~24 categories</td>
+        <td>Tens of kilobytes</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>/person/</code>, <code>/movie/</code>, <code>/award/</code></th>
+        <td>Matching nominations only</td>
+        <td>Kilobytes</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="caching">Caching</h2>
+  <p>
+    Responses are served through a CDN, so a repeated identical request is usually cheap. The most
+    effective thing you can do is still to keep your own copy.
+  </p>
+
+  <Panel
+    label="A reasonable pattern"
+    code={`# Pull once at deploy time, serve from your own store afterwards.
+curl "${API_BASE}/oscars/apikey=YOUR_API_KEY" -o oscars.json`}
+  />
+
+  <h2 id="guarantees">Guarantees</h2>
+  <p>
+    None, honestly. No SLA, no uptime target, no deprecation policy, no support contract. The shape
+    of the responses has been stable for years and there is no plan to change it, but this is a free
+    service run by one person. If your product cannot tolerate it disappearing, hold your own copy of
+    the data.
+  </p>
+
+  <h2 id="commercial">Commercial use</h2>
+  <p>
+    Personal projects, research, teaching, hobby apps: go ahead. If it is a commercial product,
+    please get in touch first.
+  </p>
+
+  <nav class="pager" aria-label="Guides">
+    <a href="/docs/errors">
+      <span class="dir">Previous</span>
+      Errors
+    </a>
+    <a href="/reference" style="text-align:right">
+      <span class="dir">Next</span>
+      API reference
+    </a>
+  </nav>
+</DocPage>

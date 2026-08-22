@@ -1,0 +1,86 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+import { API_BASE } from '../../data/api';
+---
+
+<DocPage
+  title="Authentication"
+  description="How API keys work in the UrActor Academy Awards API: path-segment keys, what a 403 means, and how to rotate a leaked key."
+  eyebrow="The basics &#8212; II"
+>
+  <p class="lede">
+    One key per account. It goes in the path. It can be rotated at any time, and rotating it takes
+    effect immediately.
+  </p>
+
+  <h2 id="how">How a request is authenticated</h2>
+  <p>
+    The last segment of every path is <code>apikey=</code> followed by your key. The API looks the
+    key up and rejects the request if it does not exist.
+  </p>
+
+  <Panel
+    label="Authenticated request"
+    code={`curl "${API_BASE}/oscars/year=2026/apikey=YOUR_API_KEY"`}
+  />
+
+  <p>
+    There is no <code>Authorization</code> header, no OAuth flow and no signed request. That is a
+    deliberate simplification for an API that only ever serves public data.
+  </p>
+
+  <h2 id="failures">When it fails</h2>
+  <p>
+    A missing, unknown or revoked key returns <span class="pill status-4">403</span> with the same
+    body in every case &mdash; the API does not tell you which of the three it was.
+  </p>
+
+  <Panel label="403 Forbidden" code={'{\n  "error": "Forbidden - Invalid API Key"\n}'} />
+
+  <h2 id="browser">Calling it from a browser</h2>
+  <p>
+    Cross-origin requests are allowed, so the API can be called directly from front-end code. Be
+    aware of what that means: <strong
+      >any key you ship to a browser is public</strong
+    >. Anyone can read it out of your JavaScript bundle or their own network tab.
+  </p>
+  <div class="note">
+    <span class="eyebrow">Recommendation</span>
+    <p>
+      Call the API from your server and cache the result. If you do call it from the browser
+      anyway, use a key you are willing to see used by other people, and rotate it when you get
+      bored of that.
+    </p>
+  </div>
+
+  <h2 id="rotation">Rotating a key</h2>
+  <p>
+    Rotation is on the <a href="/account">key page</a>. Requesting a new key issues one immediately
+    and revokes the old one in the same operation &mdash; there is no grace period and no overlap
+    window, so deploy the new key before you rotate, or accept a short gap.
+  </p>
+  <p>
+    Rotate if the key has appeared somewhere public, if it is in a repository you are about to open
+    source, or if you simply want a fresh one.
+  </p>
+
+  <h2 id="storage">Where keys live</h2>
+  <p>
+    Keys are stored server-side and are never readable by other users. The account page cannot read
+    or write the key store directly; it asks the API to do it, and the API checks your signed-in
+    identity first. That means a compromised browser session cannot enumerate anyone else&rsquo;s
+    key.
+  </p>
+
+  <nav class="pager" aria-label="Guides">
+    <a href="/docs/getting-started">
+      <span class="dir">Previous</span>
+      Getting started
+    </a>
+    <a href="/docs/data-model" style="text-align:right">
+      <span class="dir">Next</span>
+      The data model
+    </a>
+  </nav>
+</DocPage>
