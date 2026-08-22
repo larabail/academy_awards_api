@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "uractordeveloper"
+  },
+  "targets": {
+    "uractordeveloper": {
+      "hosting": {
+        "api": [
+          "uractordeveloper"
+        ],
+        "developer": [
+          "uractor-developer"
+        ]
+      }
+    }
   }
 }
