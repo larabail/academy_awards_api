@@ -1,0 +1,140 @@
+name: Update Oscars
+
+# The Academy announces nominations in late January and holds the ceremony in
+# mid-March, so the archive only changes twice a year. These windows run daily
+# across those periods to catch both without polling Wikipedia all year.
+on:
+  schedule:
+    - cron: '0 18 20-27 1 *' # 20-27 January, nominations
+    - cron: '0 6 12-20 3 *' # 12-20 March, the morning after the ceremony
+  workflow_dispatch:
+    inputs:
+      year:
+        description: Ceremony year (defaults to the current year)
+        type: string
+        required: false
+      url:
+        description: Wikipedia URL, overriding the year
+        type: string
+        required: false
+      apply:
+        description: Write the changes. Leave off for a dry run.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: update-oscars
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Refresh the archive
+    runs-on: ubuntu-latest
+    # A scheduled run is always a dry run; writing requires either a manual run
+    # with the box ticked, or an approval on this environment.
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply) && 'production' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # The scraper reads the archive through firebase-admin, which lives in
+      # functions/. Only production dependencies are needed.
+      - name: Install
+        working-directory: functions
+        run: npm ci --omit=dev
+
+      - name: Parser tests
+        run: node --test scripts/lib/parse-ceremony.test.mjs
+
+      - name: Authenticate
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Work out the target ceremony
+        id: target
+        run: |
+          if [ -n "${{ inputs.url }}" ]; then
+            echo "args=--url ${{ inputs.url }}" >> "$GITHUB_OUTPUT"
+            echo "label=${{ inputs.url }}" >> "$GITHUB_OUTPUT"
+          else
+            YEAR="${{ inputs.year }}"
+            [ -n "$YEAR" ] || YEAR=$(date -u +%Y)
+            echo "args=--year $YEAR" >> "$GITHUB_OUTPUT"
+            echo "label=ceremony $YEAR" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Always dry run first. The output is the record of what would change, and
+      # it is what gets attached to the issue below.
+      - name: Dry run
+        id: dry
+        run: |
+          set +e
+          node scripts/scrape-oscars.mjs ${{ steps.target.outputs.args }} | tee "$RUNNER_TEMP/dry.txt"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$STATUS" -eq 2 ]; then
+            echo "status=refused" >> "$GITHUB_OUTPUT"
+          elif [ "$STATUS" -ne 0 ]; then
+            echo "status=error" >> "$GITHUB_OUTPUT"
+          elif grep -q '^No changes' "$RUNNER_TEMP/dry.txt"; then
+            echo "status=unchanged" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=changed" >> "$GITHUB_OUTPUT"
+          fi
+
+          {
+            echo "### ${{ steps.target.outputs.label }}"
+            echo ''
+            echo '```'
+            cat "$RUNNER_TEMP/dry.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply
+        if: >-
+          steps.dry.outputs.status == 'changed' &&
+          github.event_name == 'workflow_dispatch' &&
+          inputs.apply
+        run: node scripts/scrape-oscars.mjs ${{ steps.target.outputs.args }} --apply
+
+      # A scheduled run cannot write, so it raises an issue instead. That keeps
+      # a human in the loop for the one event a year that actually matters.
+      - name: Open an issue when a scheduled run finds changes
+        if: steps.dry.outputs.status == 'changed' && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="Oscars archive: changes detected for ${{ steps.target.outputs.label }}"
+          if gh issue list --search "$TITLE in:title" --state open --json number --jq 'length' | grep -q '^0$'; then
+            {
+              echo "The scheduled scraper found differences between Wikipedia and the archive."
+              echo ''
+              echo 'Review the diff, then run the **Update Oscars** workflow manually with **apply** ticked.'
+              echo ''
+              echo '```'
+              cat "$RUNNER_TEMP/dry.txt"
+              echo '```'
+            } > "$RUNNER_TEMP/body.md"
+            gh issue create --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
+          else
+            echo "An issue for this ceremony is already open."
+          fi
+
+      - name: Fail if the page could not be parsed
+        if: steps.dry.outputs.status == 'refused' || steps.dry.outputs.status == 'error'
+        run: |
+          echo "::error::The scraper refused to continue. Wikipedia's markup has probably changed."
+          exit 1
