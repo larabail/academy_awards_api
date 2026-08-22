@@ -1,0 +1,26 @@
+---
+/** A documentation page: contents rail on the left, measured text column. */
+import Base from './Base.astro';
+import Contents from '../components/Contents.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  label?: string;
+  section?: 'guides' | 'reference' | 'account';
+  noindex?: boolean;
+}
+
+const { title, description, label, section = 'guides', noindex } = Astro.props;
+---
+
+<Base title={title} description={description} section={section} noindex={noindex}>
+  <div class="shell">
+    <Contents />
+    <main id="main" class="column">
+      {label && <span class="label">{label}</span>}
+      <h1>{title}</h1>
+      <slot />
+    </main>
+  </div>
+</Base>

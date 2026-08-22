@@ -1,0 +1,23 @@
+---
+/** METHOD and path, set as a standing head between two rules. */
+interface Props {
+  method: string;
+  path: string;
+  base?: string;
+}
+const { method, path, base = '' } = Astro.props;
+
+// Split on {param} so placeholders can be styled without using innerHTML.
+const parts = path.split(/(\{\w+\})/).filter(Boolean);
+---
+
+<p class="route">
+  <span class="method">{method}</span>
+  <code
+    >{base}{
+      parts.map((part) =>
+        part.startsWith('{') ? <span class="var">{part}</span> : <span>{part}</span>,
+      )
+    }</code
+  >
+</p>

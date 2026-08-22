@@ -1,0 +1,151 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+import { DATASET } from '../../data/api';
+
+const bestPicture = `{
+  "category": "Best Picture",
+  "nominations": [
+    {
+      "primary": ["One Battle after Another"],
+      "secondary": ["Adam Somner", "Sara Murphy", "Paul Thomas Anderson"],
+      "won": true
+    }
+  ]
+}`;
+
+const bestActor = `{
+  "category": "Best Performance by an Actor in a Leading Role",
+  "nominations": [
+    {
+      "primary": ["Michael B. Jordan"],
+      "secondary": ["Sinners"],
+      "won": true
+    }
+  ]
+}`;
+
+const withNotes = `{
+  "primary": ["Emil Jannings"],
+  "secondary": ["The Last Command", "The Way of All Flesh"],
+  "won": true,
+  "notes": "Emil Jannings received his award early due to the fact that he was going home to Europe before the ceremony."
+}`;
+---
+
+<DocPage
+  title="The data model"
+  description="Ceremonies, categories and nominations: what primary and secondary mean, why they swap by category, and how to read the Oscars data returned by the API."
+  label="The basics — III"
+>
+  <p class="lede">
+    Three nested things: a ceremony holds categories, a category holds nominations. Everything the
+    API returns is some slice of that.
+  </p>
+
+  <h2 id="ceremony">Ceremony</h2>
+  <p>
+    Keyed by the year the ceremony was <em>held</em>, not the year the films came out. The {
+      DATASET.firstYear
+    } ceremony honours films from 1927 and 1928. A ceremony is an array of categories, in
+    programme order.
+  </p>
+
+  <h2 id="category">Category</h2>
+  <p>
+    A category has a <code>category</code> name and a <code>nominations</code> array. Category names
+    are recorded as they were used at the time, which means <strong
+      >they change across the archive</strong
+    >. The leading acting award appears as &ldquo;Best Actor in a Leading Role&rdquo; in the early
+    years and &ldquo;Best Performance by an Actor in a Leading Role&rdquo; more recently.
+  </p>
+  <div class="aside">
+    <span class="label">Why that matters</span>
+    <p>
+      It is the reason the category endpoints match on a <strong>substring</strong> rather than the
+      whole name. Searching for <code>Actor in a Leading Role</code> finds both spellings; searching
+      for the full modern name finds only the recent ones.
+    </p>
+  </div>
+
+  <h2 id="nomination">Nomination</h2>
+  <p>
+    A nomination has four fields, two of which are arrays. This is the part worth reading carefully.
+  </p>
+
+  <table>
+    <caption>Fields on a nomination</caption>
+    <thead>
+      <tr>
+        <th scope="col">Field</th>
+        <th scope="col">Type</th>
+        <th scope="col">Meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row"><code>primary</code></th>
+        <td>string[]</td>
+        <td>Who or what the nomination is <em>for</em>.</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>secondary</code></th>
+        <td>string[]</td>
+        <td>The context: the film, or the people who share the award.</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>won</code></th>
+        <td>boolean</td>
+        <td>Whether this nomination won the category.</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>notes</code></th>
+        <td>string</td>
+        <td>
+          Optional. Historical footnotes &mdash; irregular ceremonies, shared awards, withdrawn
+          nominations. Present on roughly 1,200 nominations.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="swap">primary and secondary swap roles</h2>
+  <p>
+    There is no single rule like &ldquo;primary is always the person&rdquo;. The two fields describe
+    the shape of the award, and that shape differs by category.
+  </p>
+
+  <p><strong>For Best Picture</strong>, the film is the nominee and the producers share it:</p>
+  <Panel label="Best Picture" code={bestPicture} />
+
+  <p><strong>For acting and directing</strong>, the person is the nominee and the film is context:</p>
+  <Panel label="Best Actor in a Leading Role" code={bestActor} />
+
+  <p>
+    Both fields are arrays because either side can hold several values &mdash; a producing team, or a
+    performer nominated for two films in the same year.
+  </p>
+
+  <h2 id="notes">Notes</h2>
+  <p>The early ceremonies were not run the way they are now, and the archive records that.</p>
+  <Panel label="A nomination carrying a note" code={withNotes} />
+
+  <h2 id="searching">What this means for searching</h2>
+  <p>
+    The person and film endpoints both match against <code>primary</code> and <code>secondary</code>,
+    exactly. A useful consequence: searching a <em>film title</em> through the person endpoint finds
+    every category it was nominated in across every year, because the title appears in one field or
+    the other either way.
+  </p>
+
+  <nav class="pager" aria-label="Guides">
+    <a href="/docs/authentication">
+      <span class="dir">Previous</span>
+      Authentication
+    </a>
+    <a href="/docs/errors" style="text-align:right">
+      <span class="dir">Next</span>
+      Errors
+    </a>
+  </nav>
+</DocPage>

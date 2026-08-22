@@ -1,0 +1,42 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import { endpoints, API_BASE } from '../../data/api';
+---
+
+<DocPage
+  title="API reference"
+  description="Every endpoint in the UrActor Academy Awards API, with parameters, examples and error responses."
+  label="Reference"
+  section="reference"
+>
+  <p class="lede">
+    Six read-only endpoints, all returning JSON. The base URL is <code>{API_BASE}</code> and every
+    route ends with your key as a path segment.
+  </p>
+
+  <div class="aside">
+    <span class="label">Machine readable</span>
+    <p>
+      The same definitions are published as an OpenAPI 3.1 document at{' '}
+      <a href="/openapi.json">/openapi.json</a>, generated from the source this page is built from.
+    </p>
+  </div>
+
+  <h2 id="endpoints">The endpoints</h2>
+  <ul class="index">
+    {
+      endpoints.map((e) => (
+        <li>
+          <a href={`/reference/${e.slug}`}>
+            <span class="num">{e.number}</span>
+            <h3>{e.title}</h3>
+            <p>{e.summary}</p>
+            <code>
+              {e.method} {e.path}
+            </code>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</DocPage>

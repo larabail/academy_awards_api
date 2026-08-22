@@ -64,3 +64,12 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# Firebase service account credentials (never commit)
+serviceAccountKey.json
+**/serviceAccountKey.json
+
+# Astro site
+site/node_modules/
+site/dist/
+site/.astro/

@@ -1,0 +1,25 @@
+{
+  "name": "uractor-developer",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "audit": "node audit.cjs dist",
+    "verify": "npm run check && npm run build && npm run audit"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.3",
+    "astro": "7.2.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "typescript": "5.9.3"
+  }
+}

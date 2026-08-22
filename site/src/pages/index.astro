@@ -1,0 +1,170 @@
+---
+import Base from '../layouts/Base.astro';
+import Panel from '../components/Panel.astro';
+import { endpoints, DATASET, API_BASE, exampleCurl } from '../data/api';
+
+const ceremony = endpoints[1];
+---
+
+<Base
+  title="UrActor Academy Awards API — every Oscar since 1929"
+  description={`A free JSON API for Academy Awards data: ${DATASET.ceremonies} ceremonies from ${DATASET.firstYear} to ${DATASET.lastYear}, with nominees, winners and category history.`}
+  section="home"
+>
+  <main id="main">
+    <section class="masthead-block">
+      <div class="inner">
+        <p class="label">Free &middot; read-only &middot; JSON</p>
+        <h1>The Academy Awards,<br />as an API.</h1>
+        <p class="standfirst">
+          Oscars data sounds easy to get hold of and isn&rsquo;t. This serves it properly &mdash;
+          {DATASET.ceremonies} ceremonies, every nominee, every winner, and every time a category was
+          quietly renamed &mdash; so you can query it instead of scraping for it.
+        </p>
+        <div class="actions">
+          <a class="btn" href="/account">Get an API key</a>
+          <a class="btn ghost" href="/docs/getting-started">Read the guide</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="body-block">
+      <section class="facts" aria-label="At a glance">
+        <dl>
+          <div><dt>Ceremonies</dt><dd>{DATASET.ceremonies}</dd></div>
+          <div><dt>From</dt><dd>{DATASET.firstYear}</dd></div>
+          <div><dt>To</dt><dd>{DATASET.lastYear}</dd></div>
+          <div><dt>Endpoints</dt><dd>{endpoints.length}</dd></div>
+        </dl>
+      </section>
+
+      <div class="two-col">
+        <section aria-labelledby="start">
+          <h2 id="start">Start here</h2>
+          <p>
+            Sign in once and a key is issued immediately &mdash; no application form. The key travels
+            as the last segment of the path rather than in a header, which is the one genuinely
+            unusual thing about this API.
+          </p>
+          <Panel label="Your first request" code={exampleCurl(ceremony)} />
+          <p class="muted small">
+            Base URL <code>{API_BASE}</code>. Full description at{' '}
+            <a href="/openapi.json">/openapi.json</a>.
+          </p>
+        </section>
+
+        <section aria-labelledby="honest">
+          <h2 id="honest">What this is not</h2>
+          <p>
+            One person&rsquo;s side project, served from Firebase, free of charge. No uptime
+            guarantee and no support contract.
+          </p>
+          <p>
+            If you are building something that must not break, cache what you take. The data changes
+            once a year, in March.
+          </p>
+        </section>
+      </div>
+
+      <section aria-labelledby="endpoints">
+        <h2 id="endpoints">The endpoints</h2>
+        <ul class="index">
+          {
+            endpoints.map((e) => (
+              <li>
+                <a href={`/reference/${e.slug}`}>
+                  <span class="num">{e.number}</span>
+                  <h3>{e.title}</h3>
+                  <p>{e.summary}</p>
+                  <code>
+                    {e.method} {e.path}
+                  </code>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
+  </main>
+</Base>
+
+<style>
+  /* The opening spread: one large setting, then the page settles into columns. */
+  .masthead-block {
+    border-bottom: 1px solid var(--rule);
+    padding: clamp(3.5rem, 9vw, 7rem) var(--gutter) clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .inner,
+  .body-block {
+    max-width: 84rem;
+    margin: 0 auto;
+  }
+
+  .body-block {
+    padding: 0 var(--gutter) 5rem;
+  }
+
+  h1 {
+    font-size: var(--step-4);
+    letter-spacing: -0.025em;
+    margin: 0 0 1.25rem;
+    max-width: 18ch;
+  }
+
+  .standfirst {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--paper-dim);
+    max-width: 52ch;
+    margin: 0 0 2rem;
+  }
+
+  /* A ruled strip of figures, the way a print piece would set them. */
+  .facts {
+    border-bottom: 1px solid var(--rule);
+    padding: 1.5rem 0;
+  }
+
+  .facts dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem clamp(2rem, 7vw, 6rem);
+    margin: 0;
+  }
+
+  .facts div {
+    margin: 0;
+  }
+
+  .facts dt {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--paper-faint);
+  }
+
+  .facts dd {
+    margin: 0.2rem 0 0;
+    font-size: var(--step-2);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .two-col {
+    display: grid;
+    gap: 0 clamp(2rem, 6vw, 5rem);
+  }
+
+  @media (min-width: 54rem) {
+    .two-col {
+      grid-template-columns: 1.35fr 1fr;
+    }
+  }
+
+  .index {
+    max-width: none;
+  }
+</style>

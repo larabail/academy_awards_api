@@ -1,0 +1,92 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+import { API_BASE, DATASET, endpoints, exampleCurl } from '../../data/api';
+
+const ceremony = endpoints[1];
+const person = endpoints[2];
+---
+
+<DocPage
+  title="Getting started"
+  description="Take a key, put it in the path, ask for a ceremony. The three-minute introduction to the free UrActor Academy Awards API."
+  label="The basics — I"
+>
+  <p class="lede">
+    This API serves Academy Awards data: {DATASET.ceremonies} ceremonies from {DATASET.firstYear} to {
+      DATASET.lastYear
+    }, every nominee and every winner. It is free, read-only, and returns plain JSON.
+  </p>
+
+  <h2 id="key">1. Take a key</h2>
+  <p>
+    Go to the <a href="/account">key page</a>, sign in with an email address, and a key is issued to
+    you on the spot. There is no application form and nothing to approve.
+  </p>
+
+  <h2 id="path">2. Put the key in the path</h2>
+  <p>
+    This is the one genuinely unusual thing about this API, so it is worth saying plainly: the key
+    goes in the <strong>path</strong>, not in a query string and not in a header. Every route ends
+    with a <code>apikey=</code> segment.
+  </p>
+
+  <Panel label="The shape of every request" code={`${API_BASE}/{resource}/apikey=YOUR_API_KEY`} />
+
+  <div class="aside">
+    <span class="label">Because of that</span>
+    <p>
+      Your key will appear in server logs, browser history and referrer headers like any other part
+      of a URL. Treat it as a low-value credential: it grants read-only access to public awards data
+      and nothing else. If it leaks, <a href="/account">rotate it</a>.
+    </p>
+  </div>
+
+  <h2 id="request">3. Ask for a ceremony</h2>
+  <p>
+    The most useful starting point is a single ceremony, which returns every category presented that
+    year.
+  </p>
+
+  <Panel label="cURL" code={exampleCurl(ceremony)} />
+
+  <p>
+    You get back an array of categories, each holding its nominations. A nomination records who or
+    what was nominated (<code>primary</code>), the context it was nominated for (<code>secondary</code
+    >), and whether it won.
+  </p>
+
+  <Panel label="200 OK (truncated)" code={ceremony.exampleResponse} />
+
+  <h2 id="search">Looking something up</h2>
+  <p>
+    If you already know the name you are after, go straight to it. Names are matched exactly, so
+    spell them as the Academy does.
+  </p>
+
+  <Panel label="cURL" code={exampleCurl(person)} />
+
+  <hr />
+
+  <h2 id="next">Where to go next</h2>
+  <ul>
+    <li>
+      <a href="/docs/data-model">The data model</a> &mdash; what <code>primary</code> and <code
+        >secondary</code
+      > actually mean, and why it changes by category.
+    </li>
+    <li>
+      <a href="/docs/authentication">Authentication</a> &mdash; keys, rotation, and what a 403 means.
+    </li>
+    <li><a href="/reference">The reference</a> &mdash; all six endpoints in detail.</li>
+    <li><a href="/docs/limits">Limits and fair use</a> &mdash; please cache.</li>
+  </ul>
+
+  <nav class="pager" aria-label="Guides">
+    <span></span>
+    <a href="/docs/authentication" style="text-align:right">
+      <span class="dir">Next</span>
+      Authentication
+    </a>
+  </nav>
+</DocPage>

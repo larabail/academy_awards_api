@@ -1,0 +1,385 @@
+---
+import Base from '../layouts/Base.astro';
+import Contents from '../components/Contents.astro';
+import { API_BASE } from '../data/api';
+---
+
+<Base
+  title="Your API key"
+  description="Request, reveal and rotate your key for the UrActor Academy Awards API."
+  section="account"
+  noindex={true}
+>
+  <div class="shell">
+    <Contents />
+
+    <main id="main" class="column">
+      <span class="label">Account</span>
+      <h1>Your API key</h1>
+      <p class="lede">
+        Sign in and a key is issued immediately. Rotate it whenever you like &mdash; the old key
+        stops working at once.
+      </p>
+
+      <noscript>
+        <div class="aside">
+          <span class="label">JavaScript required</span>
+          <p>
+            This page signs you in and talks to the key service, so it needs JavaScript. The rest of
+            the site works without it &mdash; start with the{' '}
+            <a href="/docs/getting-started">guide</a>.
+          </p>
+        </div>
+      </noscript>
+
+      <p id="status" class="status-line" role="status" aria-live="polite"></p>
+
+      <!-- Signed out. This is the first thing on the page, not the last. -->
+      <section id="view-auth" hidden aria-labelledby="auth-heading">
+        <h2 id="auth-heading">Sign in</h2>
+        <p class="muted">
+          New here? Enter an email and password and an account will be created for you.
+        </p>
+        <form id="auth-form" novalidate>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              minlength="6"
+              required
+            />
+            <p class="hint">At least six characters.</p>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Sign in</button>
+            <button class="btn ghost" type="button" data-action="signup">Create an account</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Signed in. -->
+      <section id="view-key" hidden aria-labelledby="key-heading">
+        <h2 id="key-heading">Your key</h2>
+
+        <div class="key-block" id="key-block" data-state="none">
+          <span class="label">Key</span>
+          <p class="key-value"><code id="key-value">&mdash;</code></p>
+          <p class="hint" id="key-meta"></p>
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="button" id="btn-issue" hidden>Issue my key</button>
+          <button class="btn" type="button" id="btn-copy" hidden>Copy</button>
+          <button class="btn ghost" type="button" id="btn-rotate" hidden>Rotate</button>
+          <button class="btn danger" type="button" id="btn-revoke" hidden>Revoke</button>
+        </div>
+
+        <div class="aside" id="rotate-warning" hidden>
+          <span class="label">Rotating replaces the key immediately</span>
+          <p>
+            There is no overlap window. Anything still sending the old key starts getting{' '}
+            <code>403</code> the moment you confirm.
+          </p>
+          <div class="actions">
+            <button class="btn danger" type="button" id="btn-rotate-confirm">Yes, rotate now</button>
+            <button class="btn ghost" type="button" id="btn-rotate-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <div class="aside" id="revoke-warning" hidden>
+          <span class="label">Revoking leaves you with no key</span>
+          <p>Your account stays, but every request fails until you issue a new key.</p>
+          <div class="actions">
+            <button class="btn danger" type="button" id="btn-revoke-confirm">Yes, revoke</button>
+            <button class="btn ghost" type="button" id="btn-revoke-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <h2>Using it</h2>
+        <p>
+          The key is the last path segment of every request, not a header. See{' '}
+          <a href="/docs/authentication">authentication</a> for what that implies, particularly if
+          you plan to call the API from a browser.
+        </p>
+
+        <hr />
+        <p class="muted small">
+          Signed in as <strong id="who"></strong>.
+          <button class="linkish" type="button" id="btn-signout">Sign out</button>
+        </p>
+      </section>
+    </main>
+  </div>
+</Base>
+
+<style>
+  .status-line {
+    min-height: 1.4rem;
+    margin: 0 0 0.5rem;
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    color: var(--paper-dim);
+  }
+
+  .status-line[data-tone='error'] {
+    color: var(--bad);
+  }
+
+  /* The key itself, set as the one emphatic object on the page. */
+  .key-block {
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 1.1rem 0;
+    margin: 1.25rem 0;
+    max-width: var(--measure);
+  }
+
+  .key-block .label {
+    margin-bottom: 0.4rem;
+  }
+
+  .key-value {
+    margin: 0;
+  }
+
+  .key-value code {
+    font-size: clamp(0.95rem, 3vw, 1.2rem);
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--paper);
+    user-select: all;
+    letter-spacing: 0.01em;
+  }
+
+  .key-block[data-state='none'] .key-value code {
+    color: var(--paper-faint);
+    font-style: italic;
+  }
+</style>
+
+<script is:inline define:vars={{ API_BASE }}>
+  const $ = (id) => document.getElementById(id);
+  const status = $('status');
+
+  function say(message, tone) {
+    status.textContent = message || '';
+    if (tone) status.dataset.tone = tone;
+    else delete status.dataset.tone;
+  }
+
+  const show = (el, on) => {
+    if (el) el.hidden = !on;
+  };
+
+  say('Loading\u2026');
+
+  // Firebase Hosting serves the SDK and this project's config from reserved
+  // URLs, so no keys or project identifiers are checked into the site source.
+  function load(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  (async () => {
+    try {
+      await load('/__/firebase/10.1.0/firebase-app-compat.js');
+      await load('/__/firebase/10.1.0/firebase-auth-compat.js');
+      await load('/__/firebase/init.js');
+    } catch {
+      say('Could not load the sign-in service. Please refresh.', 'error');
+      return;
+    }
+
+    const auth = firebase.auth();
+
+    const viewAuth = $('view-auth');
+    const viewKey = $('view-key');
+    const keyBlock = $('key-block');
+    const keyValue = $('key-value');
+    const keyMeta = $('key-meta');
+
+    const btnIssue = $('btn-issue');
+    const btnCopy = $('btn-copy');
+    const btnRotate = $('btn-rotate');
+    const btnRevoke = $('btn-revoke');
+    const rotateWarning = $('rotate-warning');
+    const revokeWarning = $('revoke-warning');
+
+    async function call(path, method) {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Not signed in');
+      const token = await user.getIdToken();
+      const response = await fetch(API_BASE + path, {
+        method: method || 'GET',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const body = await response.json().catch(() => ({}));
+      return { ok: response.ok, status: response.status, body };
+    }
+
+    function renderKey(apiKey) {
+      const has = Boolean(apiKey);
+      keyValue.textContent = has ? apiKey : 'No key issued yet';
+      keyMeta.textContent = has ? 'Keep this out of public repositories.' : '';
+      keyBlock.dataset.state = has ? 'has' : 'none';
+      show(btnIssue, !has);
+      show(btnCopy, has);
+      show(btnRotate, has);
+      show(btnRevoke, has);
+      show(rotateWarning, false);
+      show(revokeWarning, false);
+    }
+
+    async function refresh() {
+      const { ok, status: code, body } = await call('/v1/account/key');
+      if (ok) {
+        renderKey(body.apiKey);
+        say('');
+      } else if (code === 404) {
+        renderKey(null);
+        say('You do not have a key yet.');
+      } else {
+        say(body.error || 'Could not read your key.', 'error');
+      }
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      show(viewAuth, !user);
+      show(viewKey, Boolean(user));
+      if (!user) {
+        say('');
+        return;
+      }
+      $('who').textContent = user.email || 'your account';
+      try {
+        await refresh();
+      } catch (error) {
+        say(error.message, 'error');
+      }
+    });
+
+    $('auth-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      submit('signin');
+    });
+
+    document
+      .querySelector('[data-action="signup"]')
+      .addEventListener('click', () => submit('signup'));
+
+    async function submit(mode) {
+      const email = $('email').value.trim();
+      const password = $('password').value;
+      if (!email || password.length < 6) {
+        say('Enter an email address and a password of at least six characters.', 'error');
+        return;
+      }
+      say(mode === 'signup' ? 'Creating your account\u2026' : 'Signing in\u2026');
+      try {
+        if (mode === 'signup') {
+          await auth.createUserWithEmailAndPassword(email, password);
+          const { ok, body } = await call('/v1/account/key', 'POST');
+          if (ok) renderKey(body.apiKey);
+        } else {
+          await auth.signInWithEmailAndPassword(email, password);
+        }
+        say('');
+      } catch (error) {
+        say(friendly(error), 'error');
+      }
+    }
+
+    function friendly(error) {
+      const code = (error && error.code) || '';
+      if (code.includes('email-already-in-use'))
+        return 'That email already has an account — sign in instead.';
+      if (code.includes('invalid-credential') || code.includes('wrong-password'))
+        return 'That email and password do not match an account.';
+      if (code.includes('user-not-found')) return 'No account with that email — create one instead.';
+      if (code.includes('weak-password')) return 'Please choose a longer password.';
+      if (code.includes('invalid-email')) return 'That does not look like an email address.';
+      if (code.includes('too-many-requests'))
+        return 'Too many attempts. Wait a moment and try again.';
+      return (error && error.message) || 'Something went wrong.';
+    }
+
+    btnIssue.addEventListener('click', async () => {
+      say('Issuing your key\u2026');
+      const { ok, body } = await call('/v1/account/key', 'POST');
+      if (ok) {
+        renderKey(body.apiKey);
+        say('Key issued.');
+      } else {
+        say(body.error || 'Could not issue a key.', 'error');
+      }
+    });
+
+    btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(keyValue.textContent);
+        say('Key copied to the clipboard.');
+      } catch {
+        say('Could not copy — select the key and copy it manually.', 'error');
+      }
+    });
+
+    btnRotate.addEventListener('click', () => {
+      show(rotateWarning, true);
+      show(revokeWarning, false);
+      $('btn-rotate-confirm').focus();
+    });
+
+    $('btn-rotate-cancel').addEventListener('click', () => {
+      show(rotateWarning, false);
+      btnRotate.focus();
+    });
+
+    $('btn-rotate-confirm').addEventListener('click', async () => {
+      say('Rotating\u2026');
+      const { ok, body } = await call('/v1/account/key/rotate', 'POST');
+      if (ok) {
+        renderKey(body.apiKey);
+        say('Rotated. The previous key no longer works.');
+      } else {
+        say(body.error || 'Could not rotate the key.', 'error');
+      }
+    });
+
+    btnRevoke.addEventListener('click', () => {
+      show(revokeWarning, true);
+      show(rotateWarning, false);
+      $('btn-revoke-confirm').focus();
+    });
+
+    $('btn-revoke-cancel').addEventListener('click', () => {
+      show(revokeWarning, false);
+      btnRevoke.focus();
+    });
+
+    $('btn-revoke-confirm').addEventListener('click', async () => {
+      say('Revoking\u2026');
+      const { ok, body } = await call('/v1/account/key', 'DELETE');
+      if (ok) {
+        renderKey(null);
+        say('Key revoked.');
+      } else {
+        say(body.error || 'Could not revoke the key.', 'error');
+      }
+    });
+
+    $('btn-signout').addEventListener('click', () => auth.signOut());
+  })();
+</script>

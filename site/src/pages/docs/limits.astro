@@ -1,0 +1,130 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+import { API_BASE, DATASET, RATE_LIMIT } from '../../data/api';
+---
+
+<DocPage
+  title="Limits and fair use"
+  description="No hard rate limit, no uptime guarantee, and a request to cache. How to use the free UrActor Academy Awards API considerately."
+  label="The basics — V"
+>
+  <p class="lede">
+    Every key is capped at {RATE_LIMIT.max} requests per {RATE_LIMIT.window}. Beyond that there is no
+    daily quota and no charge &mdash; just a request to be considerate, because this runs on someone
+    else&rsquo;s bill.
+  </p>
+
+  <h2 id="limit">The rate limit</h2>
+  <p>
+    Exceeding <strong>{RATE_LIMIT.max} requests per {RATE_LIMIT.window}</strong> on a single key
+    returns <span class="status status-4">429</span> with a <code>Retry-After</code> header telling
+    you how many seconds remain in the window. Wait that long and carry on.
+  </p>
+
+  <Panel
+    label="429 Too Many Requests"
+    code={'Retry-After: 42\n\n{\n  "error": "Too Many Requests",\n  "limit": "60 requests per minute",\n  "retryAfter": 42\n}'}
+  />
+
+  <div class="aside">
+    <span class="label">Honest about the mechanism</span>
+    <p>
+      The counter is held in memory on each server instance rather than in a shared store, so it is
+      approximate: under load you may get slightly more through than the stated number. It is there
+      to stop runaway scripts, not to meter you precisely. Do not build anything that depends on the
+      exact figure.
+    </p>
+  </div>
+
+  <h2 id="ask">What is asked of you</h2>
+  <ul>
+    <li><strong>Cache.</strong> The archive changes once a year, in March. Treat it as static.</li>
+    <li>
+      <strong>Do not poll.</strong> Nothing here updates in real time. A nightly refresh is already
+      more often than the data changes.
+    </li>
+    <li>
+      <strong>Take the narrow endpoint.</strong> Fetching the whole archive to read one year moves
+      several megabytes to answer a question that a single ceremony request would have answered.
+    </li>
+    <li>
+      <strong>Back off on 500s.</strong> Retrying hard against a struggling backend is how a small
+      problem becomes an outage.
+    </li>
+  </ul>
+
+  <div class="aside">
+    <span class="label">If you need more</span>
+    <p>
+      Building something that needs sustained or high-volume access? Say so before you start rather
+      than after &mdash; it is a solvable problem, and much easier to solve in advance.
+    </p>
+  </div>
+
+  <h2 id="size">Response sizes</h2>
+  <table>
+    <caption>Rough guide to what each endpoint moves</caption>
+    <thead>
+      <tr>
+        <th scope="col">Request</th>
+        <th scope="col">Scope</th>
+        <th scope="col">Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row"><code>/oscars</code></th>
+        <td>All {DATASET.ceremonies} ceremonies</td>
+        <td>Megabytes</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>/oscars/year=</code></th>
+        <td>One ceremony, ~24 categories</td>
+        <td>Tens of kilobytes</td>
+      </tr>
+      <tr>
+        <th scope="row"><code>/person/</code>, <code>/movie/</code>, <code>/award/</code></th>
+        <td>Matching nominations only</td>
+        <td>Kilobytes</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="caching">Caching</h2>
+  <p>
+    Responses are served through a CDN, so a repeated identical request is usually cheap. The most
+    effective thing you can do is still to keep your own copy.
+  </p>
+
+  <Panel
+    label="A reasonable pattern"
+    code={`# Pull once at deploy time, serve from your own store afterwards.
+curl "${API_BASE}/oscars/apikey=YOUR_API_KEY" -o oscars.json`}
+  />
+
+  <h2 id="guarantees">Guarantees</h2>
+  <p>
+    None, honestly. No SLA, no uptime target, no deprecation policy, no support contract. The shape
+    of the responses has been stable for years and there is no plan to change it, but this is a free
+    service run by one person. If your product cannot tolerate it disappearing, hold your own copy of
+    the data.
+  </p>
+
+  <h2 id="commercial">Commercial use</h2>
+  <p>
+    Personal projects, research, teaching, hobby apps: go ahead. If it is a commercial product,
+    please get in touch first.
+  </p>
+
+  <nav class="pager" aria-label="Guides">
+    <a href="/docs/errors">
+      <span class="dir">Previous</span>
+      Errors
+    </a>
+    <a href="/reference" style="text-align:right">
+      <span class="dir">Next</span>
+      API reference
+    </a>
+  </nav>
+</DocPage>

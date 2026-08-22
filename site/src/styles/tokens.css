@@ -1,0 +1,48 @@
+/*
+ * Dark editorial.
+ *
+ * A technical manual set in reverse: warm off-white on near-black, one spot
+ * colour, hairline rules doing the structural work. No gradients, no ornament.
+ * Contrast ratios against --ground are noted where they matter.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --ground: #131315;
+  --ground-raised: #1a1a1e;
+  --ground-sunken: #0d0d0f;
+
+  --paper: #ece9e3; /* 15.9:1 */
+  --paper-dim: #a5a19a; /* 7.2:1 */
+  --paper-faint: #6f6c67;
+
+  --rule: #2b2b30;
+  --rule-strong: #43434a;
+
+  /* The single spot colour: links, section numerals, one button. */
+  --spot: #f0705a; /* 6.4:1 */
+  --spot-deep: #c9432c;
+  --spot-wash: rgba(240, 112, 90, 0.1);
+
+  --ok: #86cea4;
+  --warn: #e5bb77;
+  --bad: #f0918a;
+
+  /* System stacks only, so the page costs no font requests. */
+  --serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* A modular scale, so headings relate to each other rather than being picked. */
+  --step--1: 0.833rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.33rem;
+  --step-2: 1.78rem;
+  --step-3: 2.37rem;
+  --step-4: clamp(2.5rem, 5.5vw, 3.9rem);
+
+  --measure: 68ch;
+  --contents: 15rem;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+}
