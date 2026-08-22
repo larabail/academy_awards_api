@@ -15,19 +15,36 @@
       ]
     }
   ],
-  "hosting": {
-    "public": "public",
-    "site": "uractordeveloper",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "function": "app"
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "target": "api",
+      "public": "api-public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "function": "app"
+        }
+      ]
+    },
+    {
+      "target": "developer",
+      "public": "public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
 }

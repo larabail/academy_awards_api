@@ -1,0 +1,4 @@
+# api.uractor.com serves JSON endpoints only.
+# Developer documentation lives at https://developer.uractor.com/
+User-agent: *
+Disallow: /

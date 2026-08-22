@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>API Key Management</title>
+  <title>UrActor Developer Portal</title>
   <!-- Update the version number as needed -->
   <script defer src="/__/firebase/10.1.0/firebase-app-compat.js"></script>
   <!-- Include only the Firebase features as you need -->
@@ -82,7 +82,7 @@
 </head>
 <body>
   <nav>
-    <h1>API Guide</h1>
+    <h1>UrActor Developer</h1>
     <div id="auth-section" style="display: none;">
       <a href="#" id="nav-signup">Sign Up / Login</a>
     </div>
@@ -106,6 +106,17 @@
 
     <div id="user-guide">
       <h2>API User Guide</h2>
+      <div class="endpoint" id="getting-started">
+        <h3>Getting started</h3>
+        <p><strong>Developer portal:</strong> <code>https://developer.uractor.com/</code></p>
+        <p><strong>API base URL:</strong> <code>https://api.uractor.com/</code></p>
+        <p>
+          Create an account on this portal to generate an API key, then append
+          <code>/apikey=YOUR_API_KEY</code> to any endpoint below. Requests without a
+          valid key return <code>403 Forbidden</code>.
+        </p>
+      </div>
+
       <div class="endpoint" id="all-oscars">
         <h3>Retrieve all Oscars data</h3>
         <p><strong>Endpoint:</strong> <code>/oscars/apikey=YOUR_API_KEY</code></p>

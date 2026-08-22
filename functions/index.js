@@ -8,9 +8,21 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const serviceAccount = require('./serviceAccountKey.json');
+const serviceAccountPath = './serviceAccountKey.json';
+
+// Cloud Functions injects credentials at runtime, so the service account key is
+// only needed when running the emulator outside Google infrastructure.
+function resolveCredential() {
+  try {
+    return admin.credential.cert(require(serviceAccountPath));
+  } catch (error) {
+    if (error.code !== 'MODULE_NOT_FOUND') throw error;
+    return admin.credential.applicationDefault();
+  }
+}
+
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: resolveCredential(),
   databaseURL: 'https://uractordeveloper-default-rtdb.firebaseio.com/',
 });
 
@@ -42,8 +54,8 @@ async function getPersonByName(name) {
 
   const result = [];
   for (const year in data) {
-    for (const categoryData of data[year]) {
-      for (const nomination of categoryData.nominations) {
+    for (const categoryData of data[year] || []) {
+      for (const nomination of categoryData.nominations || []) {
         if ((nomination.primary && nomination.primary.includes(name)) ||
           (nomination.secondary && nomination.secondary.includes(name))) {
           result.push({ year, category: categoryData.category, nomination });
@@ -60,8 +72,8 @@ async function getMovieByNameAndYear(name, year) {
   const data = snapshot.val();
 
   const result = [];
-  for (const categoryData of data) {
-    for (const nomination of categoryData.nominations) {
+  for (const categoryData of data || []) {
+    for (const nomination of categoryData.nominations || []) {
       if ((nomination.primary && nomination.primary.includes(name)) ||
         (nomination.secondary && nomination.secondary.includes(name))) {
         result.push({ category: categoryData.category, nomination });
@@ -78,9 +90,8 @@ async function getAwardByName(name) {
 
   const result = [];
   for (const year in data) {
-    for (const categoryData of data[year]) {
-      if ((nomination.primary && nomination.primary.includes(name)) ||
-        (nomination.secondary && nomination.secondary.includes(name))) {
+    for (const categoryData of data[year] || []) {
+      if (categoryData.category && categoryData.category.includes(name)) {
         result.push({ year, category: categoryData.category, nominations: categoryData.nominations });
       }
     }
@@ -94,14 +105,31 @@ async function getAwardByNameAndYear(name, year) {
   const data = snapshot.val();
 
   const result = [];
-  for (const categoryData of data) {
-    if ((nomination.primary && nomination.primary.includes(name)) ||
-      (nomination.secondary && nomination.secondary.includes(name))) {
+  for (const categoryData of data || []) {
+    if (categoryData.category && categoryData.category.includes(name)) {
       result.push({ category: categoryData.category, nominations: categoryData.nominations });
     }
   }
   return result;
 }
+
+const DEVELOPER_PORTAL_URL = 'https://developer.uractor.com/';
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    service: 'UrActor Academy Awards API',
+    documentation: DEVELOPER_PORTAL_URL,
+    message: 'Sign up for an API key at ' + DEVELOPER_PORTAL_URL,
+    endpoints: [
+      '/oscars/apikey=YOUR_API_KEY',
+      '/oscars/year={year}/apikey=YOUR_API_KEY',
+      '/person/name={name}/apikey=YOUR_API_KEY',
+      '/movie/name={name}/year={year}/apikey=YOUR_API_KEY',
+      '/award/name={name}/apikey=YOUR_API_KEY',
+      '/award/name={name}/year={year}/apikey=YOUR_API_KEY',
+    ],
+  });
+});
 
 app.get('/oscars/apikey=:apikey', checkApiKey, async (req, res) => {
   try {
@@ -192,6 +220,13 @@ app.get('/award/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, 
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Error fetching data' });
   }
+});
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    documentation: DEVELOPER_PORTAL_URL,
+  });
 });
 
 exports.app = functions.https.onRequest(app);
