@@ -249,8 +249,18 @@ bug the dry run found against live data.
 ### Required setup
 
 One secret, `FIREBASE_SERVICE_ACCOUNT`, containing the JSON key of a service
-account with permission to deploy. Do **not** reuse
-`functions/serviceAccountKey.json` — it was committed in earlier history.
+account with permission to deploy.
+
+> **Create a dedicated account for this.** The obvious shortcut — downloading a
+> key for the existing `firebase-adminsdk-…` account — does not work. That
+> account holds `roles/firebase.sdkAdminServiceAgent`, which grants runtime data
+> access to Firestore, the realtime database and Auth, but no deployment rights
+> at all. A deploy with it fails partway through with
+> `403, The caller does not have permission` while listing extensions, which
+> reads like an extensions problem and is not one.
+>
+> Keeping the two apart is also the point: the account your functions read data
+> with should not be the account that can redeploy them.
 
 ```bash
 PROJECT=uractordeveloper
@@ -262,6 +272,7 @@ gcloud iam service-accounts create "$SA" \
 EMAIL="$SA@$PROJECT.iam.gserviceaccount.com"
 for ROLE in \
   roles/firebase.admin \
+  roles/firebaseextensions.viewer \
   roles/cloudfunctions.admin \
   roles/iam.serviceAccountUser \
   roles/artifactregistry.admin \
@@ -276,6 +287,13 @@ gcloud iam service-accounts keys create key.json --iam-account "$EMAIL"
 gh secret set FIREBASE_SERVICE_ACCOUNT --repo larabail/academy_awards_api < key.json
 rm key.json
 ```
+
+`roles/firebaseextensions.viewer` is in that list for a reason that is not
+obvious: `firebase deploy --only functions` lists extension instances during its
+prepare step even when the project has no extensions, and
+`roles/firebase.admin` does not carry that permission. Without it the deploy
+fails at `403, The caller does not have permission` after the build has already
+started.
 
 Set the required status check for branch protection to **`PR / PR`**, which is
 the aggregate job.
