@@ -249,8 +249,18 @@ bug the dry run found against live data.
 ### Required setup
 
 One secret, `FIREBASE_SERVICE_ACCOUNT`, containing the JSON key of a service
-account with permission to deploy. Do **not** reuse
-`functions/serviceAccountKey.json` — it was committed in earlier history.
+account with permission to deploy.
+
+> **Create a dedicated account for this.** The obvious shortcut — downloading a
+> key for the existing `firebase-adminsdk-…` account — does not work. That
+> account holds `roles/firebase.sdkAdminServiceAgent`, which grants runtime data
+> access to Firestore, the realtime database and Auth, but no deployment rights
+> at all. A deploy with it fails partway through with
+> `403, The caller does not have permission` while listing extensions, which
+> reads like an extensions problem and is not one.
+>
+> Keeping the two apart is also the point: the account your functions read data
+> with should not be the account that can redeploy them.
 
 ```bash
 PROJECT=uractordeveloper
@@ -262,6 +272,7 @@ gcloud iam service-accounts create "$SA" \
 EMAIL="$SA@$PROJECT.iam.gserviceaccount.com"
 for ROLE in \
   roles/firebase.admin \
+  roles/firebaseextensions.viewer \
   roles/cloudfunctions.admin \
   roles/iam.serviceAccountUser \
   roles/artifactregistry.admin \
@@ -276,6 +287,13 @@ gcloud iam service-accounts keys create key.json --iam-account "$EMAIL"
 gh secret set FIREBASE_SERVICE_ACCOUNT --repo larabail/academy_awards_api < key.json
 rm key.json
 ```
+
+`roles/firebaseextensions.viewer` is in that list for a reason that is not
+obvious: `firebase deploy --only functions` lists extension instances during its
+prepare step even when the project has no extensions, and
+`roles/firebase.admin` does not carry that permission. Without it the deploy
+fails at `403, The caller does not have permission` after the build has already
+started.
 
 Set the required status check for branch protection to **`PR / PR`**, which is
 the aggregate job.
@@ -319,22 +337,49 @@ API is unaffected and needs no DNS change.
 
 ## Credentials
 
-`functions/serviceAccountKey.json` is git-ignored. Deployed functions
-authenticate through application default credentials; the file is only needed to
-run the emulator locally. CI authenticates with the `FIREBASE_SERVICE_ACCOUNT`
-secret.
+**You should not need a service account key to work on this project.**
 
-> A service account key was committed early in this project's history. It has
-> been purged from every commit, but **rewriting history does not undo an
-> exposure** — anyone who cloned the repository beforehand still holds it. That
-> key must be treated as compromised and rotated in
-> **Google Cloud Console → IAM & Admin → Service Accounts**.
+- **Deployed functions** authenticate through application default credentials,
+  supplied by the runtime.
+- **CI** authenticates with the `FIREBASE_SERVICE_ACCOUNT` secret.
+- **Locally**, use your own credentials rather than downloading a key:
+
+  ```bash
+  gcloud auth application-default login
+  ```
+
+  That gives the emulator the same application default credentials the deployed
+  function uses, without a long-lived key sitting on your disk.
+
+If a `functions/serviceAccountKey.json` does exist, the code will prefer it, so
+the option remains for anyone who needs it. It is git-ignored, and
+`firebase.json` also excludes it from the functions upload — the file is
+otherwise deployed from disk rather than from the index, which once shipped a
+key inside the function and took the API down when that key was rotated.
+
+> Keep both of those exclusions even when no key file exists. They guard against
+> a file created later, not one that is present today, and this repository is
+> public: a committed key is harvested within minutes. Two different keys were
+> committed here before, which is exactly how the guard came to be needed.
+
+A service account key was committed early in this project's history. It was
+purged from every commit and both affected keys have been rotated. Rewriting
+history does not undo an exposure, which is why rotation was the part that
+mattered.
 
 See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
 
 ## Local development
 
 ```bash
+gcloud auth application-default login   # once, instead of downloading a key
 npm --prefix functions install
 firebase emulators:start --only functions,hosting
+```
+
+The portal runs separately:
+
+```bash
+npm --prefix site install
+npm --prefix site run dev
 ```
