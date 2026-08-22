@@ -1,6 +1,17 @@
 # UrActor Academy Awards API
 
-Firebase project powering the UrActor Oscars API and its developer portal.
+A free, read-only JSON API for Academy Awards data: 97 ceremonies from 1929 to
+2026, every nominee, every winner, and every renaming of every category.
+
+**Documentation and API keys: [developer.uractor.com](https://developer.uractor.com/)**
+
+```bash
+curl "https://api.uractor.com/oscars/year=2026/apikey=YOUR_API_KEY"
+```
+
+Built on Firebase: Cloud Functions for the API, Realtime Database for the
+archive, Firestore for API keys, and Hosting for both the API host and the
+developer portal. The portal is an Astro static site.
 
 | Host | Hosting site | Served from | Purpose |
 | --- | --- | --- | --- |
@@ -9,6 +20,9 @@ Firebase project powering the UrActor Oscars API and its developer portal.
 
 Firebase project: `uractordeveloper`. Awards data lives in Realtime Database
 under `/oscars`; API keys live in Firestore (`apiKeys`, `users`).
+
+Licensed [MIT](LICENSE). Not affiliated with the Academy of Motion Picture Arts
+and Sciences.
 
 ## Layout
 
@@ -300,11 +314,16 @@ API is unaffected and needs no DNS change.
 
 `functions/serviceAccountKey.json` is git-ignored. Deployed functions
 authenticate through application default credentials; the file is only needed to
-run the emulator locally.
+run the emulator locally. CI authenticates with the `FIREBASE_SERVICE_ACCOUNT`
+secret.
 
-> This key was committed in earlier history. Rotate it in
-> **Google Cloud Console → IAM & Admin → Service Accounts**, and purge it from
-> git history if this repository is ever made public.
+> A service account key was committed early in this project's history. It has
+> been purged from every commit, but **rewriting history does not undo an
+> exposure** — anyone who cloned the repository beforehand still holds it. That
+> key must be treated as compromised and rotated in
+> **Google Cloud Console → IAM & Admin → Service Accounts**.
+
+See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
 
 ## Local development
 
