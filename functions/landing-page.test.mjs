@@ -97,22 +97,42 @@ describe('landingPage', () => {
 });
 
 describe('the shared design', () => {
-  it('uses the palette uractor.com uses', () => {
-    // These are a contract with two sites in other repositories. Drift here
-    // is how three pages stop looking like one project.
+  it('uses the palette developer.uractor.com uses', () => {
+    // This page dresses as the portal, not as uractor.com, because the portal
+    // is where it sends people. These tokens are copied from the portal's
+    // stylesheet and are the contract between the two hosts.
     const html = landingPage('Wrong door.', null);
-    for (const token of ['#08090A', '#E4B462', '#F2EFE6']) {
+    for (const token of ['#131315', '#f0705a', '#ece9e3']) {
       assert.ok(html.includes(token), `missing ${token}`);
     }
   });
 
-  it('carries its own mark rather than linking one', () => {
+  it('carries the portal mark rather than linking one', () => {
     // A function response with no-store has nothing to cache, and a favicon
-    // request to the 404 handler would be answered by the 404 handler.
+    // request to this host would be answered by the 404 handler, which
+    // renders this page again.
     const html = landingPage('Wrong door.', null);
     assert.ok(html.includes('data:image/svg+xml,'));
-    assert.ok(!/<img[^>]+src="https?:/.test(html),
-      'the mark must not be fetched from another origin');
+    assert.ok(!/src="https?:/.test(html),
+      'nothing here may be fetched from another origin');
+  });
+
+  it('shows no logo image and no wordmark', () => {
+    // The portal has a masthead, a wordmark and a nav because it is a site
+    // you navigate. This is one sentence telling you that you are not on it,
+    // and an app icon above that sentence was reading as branding for a page
+    // whose whole job is to send you somewhere else.
+    const html = landingPage('Wrong door.', null);
+    assert.equal(html.match(/<img\b/g), null, 'no image belongs on this page');
+    assert.equal(html.match(/<header\b/g), null, 'no masthead belongs on this page');
+  });
+
+  it('loads no fonts', () => {
+    // The portal uses system stacks. Matching it means this page fetches
+    // nothing at all, which for an endpoint's error page is the point.
+    const html = landingPage('Wrong door.', null);
+    assert.ok(!html.includes('fonts.googleapis.com'));
+    assert.ok(!html.includes('fonts.gstatic.com'));
   });
 
   it('needs no JavaScript', () => {
