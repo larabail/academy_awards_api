@@ -55,7 +55,7 @@ import { API_BASE, RATE_LIMIT } from '../../data/api';
     <p>
       Every key is capped at <strong>{RATE_LIMIT.max} requests per {RATE_LIMIT.window}</strong>, so a
       key someone else picks up cannot be used to hammer the API in your name. If your own traffic
-      starts returning <code>429</code> unexpectedly, that is worth investigating &mdash;
+      starts returning <code>429</code> unexpectedly, that is worth investigating &mdash;{' '}
       <a href="/account">rotate the key</a> and the old one stops working immediately.
     </p>
   </div>

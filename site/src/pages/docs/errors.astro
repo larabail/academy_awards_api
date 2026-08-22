@@ -49,7 +49,7 @@ import Panel from '../../components/Panel.astro';
       <tr>
         <th scope="row"><span class="status status-4">429</span></th>
         <td>
-          Too many requests on this key. Wait for the number of seconds in the
+          Too many requests on this key. Wait for the number of seconds in the{' '}
           <code>Retry-After</code> header.
         </td>
         <td>Yes, after Retry-After</td>
@@ -72,7 +72,7 @@ import Panel from '../../components/Panel.astro';
   <div class="aside">
     <span class="label">Most common cause</span>
     <p>
-      A 404 from the person or film endpoints almost always means the name did not match
+      A 404 from the person or film endpoints almost always means the name did not match{' '}
       <em>exactly</em>. These endpoints do not do fuzzy matching, case folding or partial matches.
       &ldquo;michael b. jordan&rdquo; will not find &ldquo;Michael B. Jordan&rdquo;.
     </p>
@@ -92,7 +92,7 @@ import Panel from '../../components/Panel.astro';
   <p>
     Retry 500s with exponential backoff and a cap. Retry a <span class="status status-4">429</span>
     after the number of seconds given in its <code>Retry-After</code> header. Do not retry 403 or 404
-    &mdash; nothing about the response will change on a second attempt. See
+    &mdash; nothing about the response will change on a second attempt. See{' '}
     <a href="/docs/limits">limits and fair use</a> for the rate limit itself.
   </p>
 
