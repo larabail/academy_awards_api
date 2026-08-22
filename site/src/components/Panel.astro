@@ -1,0 +1,17 @@
+---
+/** A code panel styled as film leader: dark stock, foil label, copy button. */
+interface Props {
+  label: string;
+  code: string;
+  lang?: string;
+}
+const { label, code } = Astro.props;
+---
+
+<div class="panel">
+  <div class="panel-head">
+    <span class="label">{label}</span>
+    <button class="copy" type="button" data-copy hidden>Copy</button>
+  </div>
+  <pre><code>{code}</code></pre>
+</div>

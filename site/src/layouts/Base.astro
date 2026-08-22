@@ -1,0 +1,137 @@
+---
+/**
+ * The page shell: masthead, footer, and everything <head> needs for SEO.
+ *
+ * Docs pages ship no JavaScript beyond a ~0.3 KB inline enhancement that wires
+ * up the copy buttons. The buttons are rendered hidden and only revealed by
+ * that script, so nothing dead is shown when JavaScript is unavailable.
+ */
+import '../styles/base.css';
+import { PORTAL_BASE } from '../data/api';
+import { canonicalPath } from '../lib/path';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Set on the account page, which is the only page that loads Firebase. */
+  noindex?: boolean;
+  wide?: boolean;
+  section?: 'guides' | 'reference' | 'account' | 'home';
+}
+
+const { title, description, noindex = false, section = 'home' } = Astro.props;
+
+const path = canonicalPath(Astro.url.pathname);
+const canonical = new URL(path, Astro.site ?? PORTAL_BASE).href;
+const fullTitle = path === '/' ? title : `${title} — UrActor Academy Awards API`;
+
+const nav = [
+  { href: '/docs/getting-started', label: 'Guides', key: 'guides' },
+  { href: '/reference', label: 'Reference', key: 'reference' },
+  { href: '/account', label: 'API key', key: 'account' },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UrActor Academy Awards API" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+
+    <meta name="theme-color" content="#0e1626" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230e1626'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23e3c567'%3E%E2%98%85%3C/text%3E%3C/svg%3E"
+    />
+
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'UrActor Academy Awards API',
+        url: PORTAL_BASE,
+        description:
+          'Documentation for the free Academy Awards API: 97 ceremonies of Oscars nominations and winners, served as JSON.',
+      })}
+    />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="masthead">
+      <div class="masthead-inner">
+        <a class="wordmark" href="/">
+          <span class="statuette" aria-hidden="true">&#9733;</span>
+          <span>UrActor <b>Awards API</b></span>
+        </a>
+        <nav aria-label="Primary">
+          <ul>
+            {
+              nav.map((item) => (
+                <li>
+                  <a href={item.href} aria-current={section === item.key ? 'true' : undefined}>
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <slot />
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <p style="margin:0;margin-right:auto;">
+          <span aria-hidden="true">&#9733;</span> UrActor Academy Awards API — free for
+          non-commercial use.
+        </p>
+        <nav aria-label="Footer">
+          <ul>
+            <li><a href="/docs/getting-started">Guides</a></li>
+            <li><a href="/reference">Reference</a></li>
+            <li><a href="/openapi.json">OpenAPI</a></li>
+            <li><a href="/account">API key</a></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+
+    <script is:inline>
+      // Progressive enhancement only: reveal and wire the copy buttons.
+      for (const btn of document.querySelectorAll('[data-copy]')) {
+        btn.hidden = false;
+        btn.addEventListener('click', async () => {
+          const pre = btn.closest('.panel')?.querySelector('pre');
+          if (!pre) return;
+          try {
+            await navigator.clipboard.writeText(pre.innerText);
+            const previous = btn.textContent;
+            btn.textContent = 'Copied';
+            setTimeout(() => {
+              btn.textContent = previous;
+            }, 1200);
+          } catch {
+            /* Clipboard unavailable; the text is still selectable. */
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

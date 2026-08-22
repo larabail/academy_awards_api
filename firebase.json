@@ -33,16 +33,32 @@
     },
     {
       "target": "developer",
-      "public": "public",
+      "public": "site/dist",
+      "cleanUrls": true,
+      "trailingSlash": false,
       "ignore": [
         "firebase.json",
         "**/.*",
         "**/node_modules/**"
       ],
-      "rewrites": [
+      "headers": [
         {
-          "source": "**",
-          "destination": "/index.html"
+          "source": "**/*.@(js|css|svg|png|jpg|jpeg|webp|woff2)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            }
+          ]
         }
       ]
     }

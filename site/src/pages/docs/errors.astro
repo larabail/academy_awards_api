@@ -1,0 +1,100 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+---
+
+<DocPage
+  title="Errors"
+  description="Status codes returned by the UrActor Academy Awards API, what each one means, and which are worth retrying."
+  eyebrow="The basics &#8212; IV"
+>
+  <p class="lede">
+    Errors come back as JSON with a single <code>error</code> key and an HTTP status that matches.
+    There is no error code enum and no request id.
+  </p>
+
+  <Panel label="Every error looks like this" code={'{\n  "error": "Forbidden - Invalid API Key"\n}'} />
+
+  <h2 id="statuses">Statuses</h2>
+  <table>
+    <caption>What each status means</caption>
+    <thead>
+      <tr>
+        <th scope="col">Status</th>
+        <th scope="col">Meaning</th>
+        <th scope="col">Retry?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row"><span class="pill status-2">200</span></th>
+        <td>Success. The body is the data itself, not wrapped in an envelope.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <th scope="row"><span class="pill status-4">403</span></th>
+        <td>
+          The key is missing, unknown or revoked. The response does not distinguish between them.
+        </td>
+        <td>No &mdash; fix the key</td>
+      </tr>
+      <tr>
+        <th scope="row"><span class="pill status-4">404</span></th>
+        <td>
+          The route was valid but nothing matched. Also returned for a path the API does not
+          recognise at all.
+        </td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <th scope="row"><span class="pill status-5">500</span></th>
+        <td>The archive could not be read. Transient.</td>
+        <td>Yes, with backoff</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="empty">404 is normal</h2>
+  <p>
+    A search that matches nothing is a 404, not a 200 with an empty array. If you are looking a name
+    up on behalf of a user, expect 404 as an ordinary outcome rather than a failure, and check the
+    spelling before assuming the data is missing.
+  </p>
+
+  <div class="note">
+    <span class="eyebrow">Most common cause</span>
+    <p>
+      A 404 from the person or film endpoints almost always means the name did not match
+      <em>exactly</em>. These endpoints do not do fuzzy matching, case folding or partial matches.
+      &ldquo;michael b. jordan&rdquo; will not find &ldquo;Michael B. Jordan&rdquo;.
+    </p>
+  </div>
+
+  <h2 id="unknown">Unknown routes</h2>
+  <p>
+    A path that matches no endpoint returns 404 with a pointer back to this site, so a typo in your
+    URL is distinguishable from an empty result by its body.
+  </p>
+  <Panel
+    label="404 on an unknown path"
+    code={'{\n  "error": "Not Found",\n  "documentation": "https://developer.uractor.com/"\n}'}
+  />
+
+  <h2 id="retries">Retrying</h2>
+  <p>
+    Retry 500s with exponential backoff and a cap. Do not retry 403 or 404 &mdash; nothing about the
+    response will change on a second attempt. There is currently no <code>429</code>; see
+    <a href="/docs/limits">limits and fair use</a>.
+  </p>
+
+  <nav class="pager" aria-label="Guides">
+    <a href="/docs/data-model">
+      <span class="dir">Previous</span>
+      The data model
+    </a>
+    <a href="/docs/limits" style="text-align:right">
+      <span class="dir">Next</span>
+      Limits and fair use
+    </a>
+  </nav>
+</DocPage>

@@ -1,0 +1,143 @@
+---
+import DocPage from '../../layouts/DocPage.astro';
+import Panel from '../../components/Panel.astro';
+import Route from '../../components/Route.astro';
+import { endpoints, API_BASE, exampleCurl, examplePath } from '../../data/api';
+import type { Endpoint } from '../../data/api';
+
+export function getStaticPaths() {
+  return endpoints.map((endpoint, index) => ({
+    params: { slug: endpoint.slug },
+    props: {
+      endpoint,
+      prev: index > 0 ? endpoints[index - 1] : undefined,
+      next: index < endpoints.length - 1 ? endpoints[index + 1] : undefined,
+    },
+  }));
+}
+
+interface Props {
+  endpoint: Endpoint;
+  prev?: Endpoint;
+  next?: Endpoint;
+}
+
+const { endpoint, prev, next } = Astro.props;
+const statusClass = (status: number) => `status-${String(status)[0]}`;
+---
+
+<DocPage
+  title={endpoint.title}
+  description={`${endpoint.summary} ${endpoint.method} ${endpoint.path} from the free UrActor Academy Awards API.`}
+  eyebrow={`Category \u2116 ${endpoint.number}`}
+  section="reference"
+>
+  <p class="lede">{endpoint.summary}</p>
+
+  <Route method={endpoint.method} path={endpoint.path} base={API_BASE} />
+
+  <p>{endpoint.description}</p>
+
+  <h2 id="parameters">Parameters</h2>
+  <table>
+    <caption>All parameters are path segments, not query parameters.</caption>
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Type</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        endpoint.params.map((p) => (
+          <tr>
+            <th scope="row">
+              <code>{p.name}</code>
+              {p.required && (
+                <>
+                  {' '}
+                  <span class="req">required</span>
+                </>
+              )}
+            </th>
+            <td>
+              {p.type}
+              {p.matching && (
+                <>
+                  <br />
+                  <span class={`pill ${p.matching}`}>{p.matching} match</span>
+                </>
+              )}
+            </td>
+            <td>
+              {p.description}
+              <br />
+              <span class="muted">
+                Example: <code>{p.example}</code>
+              </span>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+
+  <h2 id="request">Request</h2>
+  <Panel label="cURL" code={exampleCurl(endpoint)} />
+  <p class="muted">
+    Resolved path: <code>{examplePath(endpoint)}</code>
+  </p>
+
+  <h2 id="response">Response</h2>
+  <p>{endpoint.returns}</p>
+  <Panel label="200 OK" code={endpoint.exampleResponse} />
+
+  <h2 id="errors">Errors</h2>
+  <table>
+    <caption>Failure modes for this endpoint.</caption>
+    <thead>
+      <tr>
+        <th scope="col">Status</th>
+        <th scope="col">When</th>
+        <th scope="col">Body</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        endpoint.errors.map((e) => (
+          <tr>
+            <th scope="row">
+              <span class={`pill ${statusClass(e.status)}`}>{e.status}</span>
+            </th>
+            <td>{e.when}</td>
+            <td>
+              <code>{e.body.replace(/\n\s*/g, ' ')}</code>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+
+  <nav class="pager" aria-label="Endpoints">
+    {
+      prev ? (
+        <a href={`/reference/${prev.slug}`}>
+          <span class="dir">Previous</span>
+          {prev.title}
+        </a>
+      ) : (
+        <span />
+      )
+    }
+    {
+      next && (
+        <a href={`/reference/${next.slug}`} style="text-align:right">
+          <span class="dir">Next</span>
+          {next.title}
+        </a>
+      )
+    }
+  </nav>
+</DocPage>
