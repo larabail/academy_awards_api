@@ -73,6 +73,28 @@ Account endpoints are versioned and take a Firebase ID token as
 Machine-readable description: <https://developer.uractor.com/openapi.json>,
 generated at build time from `site/src/data/api.ts`.
 
+### Performance
+
+The archive is about a megabyte and changes twice a year, so each function
+instance keeps one copy in memory for 30 minutes.
+
+This matters because the searches that span all ceremonies previously read the
+whole archive from the database on every request — roughly 2.2 seconds and a
+megabyte of egress to return a fraction of a kilobyte. Measured against the live
+API before and after:
+
+| Endpoint | Before | After |
+| --- | --- | --- |
+| `/person/name=` | 2190 ms | 207 ms |
+| `/award/name=` | 2675 ms | 182 ms |
+
+A write made by the updater is picked up within the cache window.
+
+Path parameters are validated before they reach a database reference. `1929.5`
+used to return `500`, because a dot is not a legal key in the realtime database;
+it now returns `400`. A year outside 1929 to next year is rejected the same way,
+while 1933 — a real year with no ceremony — still returns `404`.
+
 ### Rate limiting and CORS
 
 Every key is capped at **60 requests per minute**, returning `429` with `Retry-After`.

@@ -118,9 +118,24 @@ jobs:
           name: site-dist
           path: site/dist
 
+      # Until FIREBASE_SERVICE_ACCOUNT is configured, skip with a notice rather
+      # than failing the check on something the author cannot fix in the PR.
+      - name: Check for credentials
+        id: creds
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set, so no preview was deployed. See the README."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # Deploys to a per-PR preview channel and posts the URL as a comment,
       # updating the same comment on subsequent pushes.
       - name: Deploy preview and comment
+        if: steps.creds.outputs.available == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
