@@ -161,6 +161,48 @@ code: the portal deploy re-requests four pages, and the functions deploy checks
 that the root responds, that an invalid key is still rejected, and that an
 unauthenticated account read still returns `401`.
 
+### `Update Oscars` — `.github/workflows/update-oscars.yml`
+
+Keeps the archive current from Wikipedia. Runs daily across 20–27 January
+(nominations) and 12–20 March (the ceremony), which is the only time the data
+changes, plus on demand.
+
+```bash
+node scripts/scrape-oscars.mjs --year 2026            # dry run, writes nothing
+node scripts/scrape-oscars.mjs --url https://en.wikipedia.org/wiki/98th_Academy_Awards
+node scripts/scrape-oscars.mjs --year 2026 --apply    # writes
+```
+
+**A scheduled run can never write.** It performs a dry run, and if it finds
+changes it opens an issue containing the diff. Applying is a manual run with the
+box ticked. One ceremony a year is not worth automating a write to production
+data for.
+
+Wikipedia is the source rather than `awardsdatabase.oscars.org`, which returns
+`403` to every non-browser client and renders through JavaScript. The Wikipedia
+Action API returns raw wikitext over a plain `GET` with no auth, and is updated
+within minutes of both announcements.
+
+Two things protect the archive:
+
+- **Sanity checks.** Fewer than 20 categories, fewer than 80 nominations, no
+  winners, or any empty category, and the scraper exits `2` without writing.
+  Verified: the 2015 page uses older markup with no winner markers, and the
+  scraper correctly refuses it.
+- **Cosmetic differences are ignored.** Wikipedia writes "One Battle After
+  Another" where the archive has "One Battle after Another". Comparing
+  case-insensitively stops a hundred records a year being rewritten for nothing,
+  which would bury the one line that genuinely moved.
+
+Category names are translated on the way in — Wikipedia's "Best Directing" is
+the archive's "Best Achievement in Directing". A category with no mapping is
+reported rather than silently accepted, so a new award (Best Casting arrived in
+2026) surfaces instead of appearing under Wikipedia's spelling.
+
+`scripts/lib/parse-ceremony.mjs` has no I/O and is covered by
+`node --test scripts/lib/parse-ceremony.test.mjs`. Every test corresponds to a
+bug the dry run found against live data.
+
 ### Required setup
 
 One secret, `FIREBASE_SERVICE_ACCOUNT`, containing the JSON key of a service
