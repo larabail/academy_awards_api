@@ -6,7 +6,7 @@ import Panel from '../../components/Panel.astro';
 <DocPage
   title="Errors"
   description="Status codes returned by the UrActor Academy Awards API, what each one means, and which are worth retrying."
-  eyebrow="The basics &#8212; IV"
+  label="The basics — IV"
 >
   <p class="lede">
     Errors come back as JSON with a single <code>error</code> key and an HTTP status that matches.
@@ -27,19 +27,19 @@ import Panel from '../../components/Panel.astro';
     </thead>
     <tbody>
       <tr>
-        <th scope="row"><span class="pill status-2">200</span></th>
+        <th scope="row"><span class="status status-2">200</span></th>
         <td>Success. The body is the data itself, not wrapped in an envelope.</td>
         <td>&mdash;</td>
       </tr>
       <tr>
-        <th scope="row"><span class="pill status-4">403</span></th>
+        <th scope="row"><span class="status status-4">403</span></th>
         <td>
           The key is missing, unknown or revoked. The response does not distinguish between them.
         </td>
         <td>No &mdash; fix the key</td>
       </tr>
       <tr>
-        <th scope="row"><span class="pill status-4">404</span></th>
+        <th scope="row"><span class="status status-4">404</span></th>
         <td>
           The route was valid but nothing matched. Also returned for a path the API does not
           recognise at all.
@@ -47,7 +47,15 @@ import Panel from '../../components/Panel.astro';
         <td>No</td>
       </tr>
       <tr>
-        <th scope="row"><span class="pill status-5">500</span></th>
+        <th scope="row"><span class="status status-4">429</span></th>
+        <td>
+          Too many requests on this key. Wait for the number of seconds in the
+          <code>Retry-After</code> header.
+        </td>
+        <td>Yes, after Retry-After</td>
+      </tr>
+      <tr>
+        <th scope="row"><span class="status status-5">500</span></th>
         <td>The archive could not be read. Transient.</td>
         <td>Yes, with backoff</td>
       </tr>
@@ -61,8 +69,8 @@ import Panel from '../../components/Panel.astro';
     spelling before assuming the data is missing.
   </p>
 
-  <div class="note">
-    <span class="eyebrow">Most common cause</span>
+  <div class="aside">
+    <span class="label">Most common cause</span>
     <p>
       A 404 from the person or film endpoints almost always means the name did not match
       <em>exactly</em>. These endpoints do not do fuzzy matching, case folding or partial matches.
@@ -82,9 +90,10 @@ import Panel from '../../components/Panel.astro';
 
   <h2 id="retries">Retrying</h2>
   <p>
-    Retry 500s with exponential backoff and a cap. Do not retry 403 or 404 &mdash; nothing about the
-    response will change on a second attempt. There is currently no <code>429</code>; see
-    <a href="/docs/limits">limits and fair use</a>.
+    Retry 500s with exponential backoff and a cap. Retry a <span class="status status-4">429</span>
+    after the number of seconds given in its <code>Retry-After</code> header. Do not retry 403 or 404
+    &mdash; nothing about the response will change on a second attempt. See
+    <a href="/docs/limits">limits and fair use</a> for the rate limit itself.
   </p>
 
   <nav class="pager" aria-label="Guides">

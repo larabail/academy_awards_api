@@ -1,17 +1,16 @@
 ---
-/** A code panel styled as film leader: dark stock, foil label, copy button. */
+/** Code set as a figure: hairline rules and a caption, not a boxed panel. */
 interface Props {
   label: string;
   code: string;
-  lang?: string;
 }
 const { label, code } = Astro.props;
 ---
 
-<div class="panel">
-  <div class="panel-head">
+<figure class="figure">
+  <figcaption class="figure-head">
     <span class="label">{label}</span>
     <button class="copy" type="button" data-copy hidden>Copy</button>
-  </div>
+  </figcaption>
   <pre><code>{code}</code></pre>
-</div>
+</figure>

@@ -43,20 +43,21 @@
       ],
       "headers": [
         {
-          "source": "**/*.@(js|css|svg|png|jpg|jpeg|webp|woff2)",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "public, max-age=31536000, immutable"
-            }
-          ]
-        },
-        {
-          "source": "**/*.html",
+          "//": "Pages are extensionless because of cleanUrls, so a **/*.html rule never matches them. Match everything, then let hashed assets opt back into a long cache.",
+          "source": "**",
           "headers": [
             {
               "key": "Cache-Control",
               "value": "public, max-age=0, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/_astro/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
             }
           ]
         }

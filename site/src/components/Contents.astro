@@ -1,5 +1,9 @@
 ---
-/** The programme contents: guides in roman numerals, endpoints numbered. */
+/**
+ * The contents list. The API key deliberately is not here — it lives in the
+ * masthead as a primary action, because it is the thing most visitors came for
+ * and burying it at the bottom of a sidebar hid it.
+ */
 import { guides, endpoints } from '../data/api';
 import { canonicalPath } from '../lib/path';
 
@@ -8,14 +12,14 @@ const isCurrent = (href: string) => (here === href ? 'page' : undefined);
 ---
 
 <nav class="contents" aria-label="Documentation">
-  <h2>The basics</h2>
+  <h2>Guides</h2>
   <ol>
     {
-      guides.map((g) => (
+      guides.map((g, i) => (
         <li>
           <a href={`/docs/${g.slug}`} aria-current={isCurrent(`/docs/${g.slug}`)}>
             <span class="num" aria-hidden="true">
-              {g.number}
+              {String(i + 1).padStart(2, '0')}
             </span>
             <span>{g.title}</span>
           </a>
@@ -24,12 +28,12 @@ const isCurrent = (href: string) => (here === href ? 'page' : undefined);
     }
   </ol>
 
-  <h2>The categories</h2>
+  <h2>Reference</h2>
   <ol>
     <li>
       <a href="/reference" aria-current={isCurrent('/reference')}>
-        <span class="num" aria-hidden="true">&#9733;</span>
-        <span>All endpoints</span>
+        <span class="num" aria-hidden="true">&mdash;</span>
+        <span>Overview</span>
       </a>
     </li>
     {
@@ -46,12 +50,12 @@ const isCurrent = (href: string) => (here === href ? 'page' : undefined);
     }
   </ol>
 
-  <h2>Your key</h2>
+  <h2>Reference data</h2>
   <ol>
     <li>
-      <a href="/account" aria-current={isCurrent('/account')}>
-        <span class="num" aria-hidden="true">&#9993;</span>
-        <span>Request &amp; rotate</span>
+      <a href="/openapi.json">
+        <span class="num" aria-hidden="true">&mdash;</span>
+        <span>OpenAPI document</span>
       </a>
     </li>
   </ol>

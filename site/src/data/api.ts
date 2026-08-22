@@ -15,6 +15,12 @@ export const DATASET = {
   ceremonies: 97,
 } as const;
 
+/** Mirrors RATE_WINDOW_MS / RATE_MAX in functions/index.js. */
+export const RATE_LIMIT = {
+  max: 60,
+  window: 'minute',
+} as const;
+
 export interface Param {
   name: string;
   type: 'string' | 'integer';
@@ -60,6 +66,11 @@ const AUTH_ERRORS: ErrorCase[] = [
     status: 403,
     when: 'The key is missing, unknown or has been revoked.',
     body: '{\n  "error": "Forbidden - Invalid API Key"\n}',
+  },
+  {
+    status: 429,
+    when: `More than ${RATE_LIMIT.max} requests in a minute from one key. Wait for the number of seconds in Retry-After.`,
+    body: '{\n  "error": "Too Many Requests",\n  "limit": "60 requests per minute",\n  "retryAfter": 42\n}',
   },
   {
     status: 500,

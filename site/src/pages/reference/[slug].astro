@@ -29,7 +29,7 @@ const statusClass = (status: number) => `status-${String(status)[0]}`;
 <DocPage
   title={endpoint.title}
   description={`${endpoint.summary} ${endpoint.method} ${endpoint.path} from the free UrActor Academy Awards API.`}
-  eyebrow={`Category \u2116 ${endpoint.number}`}
+  label={`Category \u2116 ${endpoint.number}`}
   section="reference"
 >
   <p class="lede">{endpoint.summary}</p>
@@ -66,7 +66,7 @@ const statusClass = (status: number) => `status-${String(status)[0]}`;
               {p.matching && (
                 <>
                   <br />
-                  <span class={`pill ${p.matching}`}>{p.matching} match</span>
+                  <span class="tag">{p.matching} match</span>
                 </>
               )}
             </td>
@@ -108,7 +108,7 @@ const statusClass = (status: number) => `status-${String(status)[0]}`;
         endpoint.errors.map((e) => (
           <tr>
             <th scope="row">
-              <span class={`pill ${statusClass(e.status)}`}>{e.status}</span>
+              <span class={`status ${statusClass(e.status)}`}>{e.status}</span>
             </th>
             <td>{e.when}</td>
             <td>
