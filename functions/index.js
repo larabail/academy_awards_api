@@ -191,6 +191,81 @@ const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 60;
 const rateBuckets = new Map();
 
+const FIRST_CEREMONY_YEAR = 1929;
+
+/**
+ * Validates the year before it reaches a database path.
+ *
+ * Unvalidated input was being interpolated straight into a realtime database
+ * reference, so "1929.5" threw (a dot is not legal in a key) and surfaced as a
+ * 500. A malformed year is the caller's mistake, not a server fault, and user
+ * input should never reach a path unchecked.
+ */
+function validateYear(req, res, next) {
+  const { year } = req.params;
+  const parsed = Number(year);
+  const latest = new Date().getUTCFullYear() + 1;
+
+  if (!/^\d{4}$/.test(year) || !Number.isInteger(parsed)) {
+    return res.status(400).json({
+      error: 'Bad Request - year must be a four-digit number',
+      received: String(year).slice(0, 40),
+    });
+  }
+  if (parsed < FIRST_CEREMONY_YEAR || parsed > latest) {
+    return res.status(400).json({
+      error: `Bad Request - year must be between ${FIRST_CEREMONY_YEAR} and ${latest}`,
+      received: parsed,
+    });
+  }
+  return next();
+}
+
+/**
+ * The archive is a megabyte and changes twice a year, so every instance keeps
+ * one copy rather than re-reading it per request.
+ *
+ * The searches that span all ceremonies were reading the whole archive from the
+ * database on every call: roughly 2.2 seconds and a megabyte of egress to
+ * return a fraction of a kilobyte. Caching turns that into one read per
+ * instance per window.
+ *
+ * A write made by the updater is picked up within ARCHIVE_TTL_MS.
+ */
+const ARCHIVE_TTL_MS = 30 * 60 * 1000;
+let archiveCache = { data: null, loadedAt: 0, promise: null };
+
+async function loadArchive() {
+  const now = Date.now();
+  if (archiveCache.data && now - archiveCache.loadedAt < ARCHIVE_TTL_MS) {
+    return archiveCache.data;
+  }
+  // Concurrent requests on a cold instance share one read rather than racing.
+  if (!archiveCache.promise) {
+    archiveCache.promise = db
+      .ref('/oscars')
+      .once('value')
+      .then((snapshot) => {
+        archiveCache = { data: snapshot.val() || {}, loadedAt: Date.now(), promise: null };
+        return archiveCache.data;
+      })
+      .catch((error) => {
+        archiveCache.promise = null;
+        throw error;
+      });
+  }
+  return archiveCache.promise;
+}
+
+/** One ceremony, served from the cached archive when it is already loaded. */
+async function loadCeremony(year) {
+  if (archiveCache.data && Date.now() - archiveCache.loadedAt < ARCHIVE_TTL_MS) {
+    return archiveCache.data[year] ?? null;
+  }
+  const snapshot = await db.ref(`/oscars/${year}`).once('value');
+  return snapshot.val();
+}
+
 function rateLimit(req, res, next) {
   // Fall back to the caller's address so unkeyed routes are still covered.
   const identity = req.params.apikey || req.ip || 'anonymous';
@@ -244,9 +319,7 @@ async function checkApiKey(req, res, next) {
 
 
 async function getPersonByName(name) {
-  const ref = db.ref('/oscars');
-  const snapshot = await ref.once('value');
-  const data = snapshot.val();
+  const data = await loadArchive();
 
   const result = [];
   for (const year in data) {
@@ -263,9 +336,7 @@ async function getPersonByName(name) {
 }
 
 async function getMovieByNameAndYear(name, year) {
-  const ref = db.ref(`/oscars/${year}`);
-  const snapshot = await ref.once('value');
-  const data = snapshot.val();
+  const data = await loadCeremony(year);
 
   const result = [];
   for (const categoryData of data || []) {
@@ -280,9 +351,7 @@ async function getMovieByNameAndYear(name, year) {
 }
 
 async function getAwardByName(name) {
-  const ref = db.ref('/oscars');
-  const snapshot = await ref.once('value');
-  const data = snapshot.val();
+  const data = await loadArchive();
 
   const result = [];
   for (const year in data) {
@@ -296,9 +365,7 @@ async function getAwardByName(name) {
 }
 
 async function getAwardByNameAndYear(name, year) {
-  const ref = db.ref(`/oscars/${year}`);
-  const snapshot = await ref.once('value');
-  const data = snapshot.val();
+  const data = await loadCeremony(year);
 
   const result = [];
   for (const categoryData of data || []) {
@@ -402,22 +469,17 @@ app.get('/', (req, res) => {
 
 app.get('/oscars/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   try {
-    const ref = db.ref('/oscars');
-    const snapshot = await ref.once('value');
-    const data = snapshot.val();
-    res.status(200).json(data);
+    res.status(200).json(await loadArchive());
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Error fetching data' });
   }
 });
 
-app.get('/oscars/year=:year/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
+app.get('/oscars/year=:year/apikey=:apikey', rateLimit, checkApiKey, validateYear, async (req, res) => {
   const year = req.params.year;
   try {
-    const ref = db.ref(`/oscars/${year}`);
-    const snapshot = await ref.once('value');
-    const data = snapshot.val();
+    const data = await loadCeremony(year);
     if (!data) {
       res.status(404).json({ error: 'Data not found for the specified year' });
     } else {
@@ -444,7 +506,7 @@ app.get('/person/name=:name/apikey=:apikey', rateLimit, checkApiKey, async (req,
   }
 });
 
-app.get('/movie/name=:name/year=:year/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
+app.get('/movie/name=:name/year=:year/apikey=:apikey', rateLimit, checkApiKey, validateYear, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
   const year = req.params.year;
   try {
@@ -475,7 +537,7 @@ app.get('/award/name=:name/apikey=:apikey', rateLimit, checkApiKey, async (req, 
   }
 });
 
-app.get('/award/name=:name/year=:year/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
+app.get('/award/name=:name/year=:year/apikey=:apikey', rateLimit, checkApiKey, validateYear, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
   const year = req.params.year;
   try {
