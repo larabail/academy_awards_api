@@ -24,6 +24,10 @@ under `/oscars`; API keys live in Firestore (`apiKeys`, `users`).
 Licensed [MIT](LICENSE). Not affiliated with the Academy of Motion Picture Arts
 and Sciences.
 
+Contributing? [AGENTS.md](AGENTS.md) is the working agreement — branch naming,
+commit convention, what CI enforces, and the traps this project has already
+fallen into.
+
 ## Layout
 
 ```
