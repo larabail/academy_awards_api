@@ -52,7 +52,7 @@ query parameter.
 
 | Endpoint | Description |
 | --- | --- |
-| `GET /` | Service metadata and a link to the portal (no key needed) |
+| `GET /` | Service metadata (no key needed) |
 | `GET /oscars/apikey=KEY` | The whole archive, 1929&ndash;2026 |
 | `GET /oscars/year={year}/apikey=KEY` | One ceremony |
 | `GET /person/name={name}/apikey=KEY` | Nominations naming a person (exact match) |
@@ -72,6 +72,23 @@ Account endpoints are versioned and take a Firebase ID token as
 
 Machine-readable description: <https://developer.uractor.com/openapi.json>,
 generated at build time from `site/src/data/api.ts`.
+
+### The API host serves no UI
+
+`api.uractor.com` has no site on it — `api-public/` deliberately contains no
+`index.html`, so every path falls through to the function. The two non-data
+routes (`/` and the catch-all 404) negotiate on `Accept`:
+
+- **API clients** (a wildcard or JSON `Accept`) get JSON, as before.
+- **Browsers** get roughly 1.2 KB of HTML: one sentence saying this is an API
+  endpoint, and a link to the portal. It is `noindex`, and carries an inline SVG
+  icon so the browser never requests `/favicon.ico` — Firebase Hosting answers
+  that itself with an empty page instead of passing it to the function.
+
+Data and account routes always return JSON regardless of `Accept`. Both
+negotiated routes send `Vary: Accept` and `no-store` so the CDN can never serve
+one representation in place of the other. The requested path is reflected into
+the 404 page and is HTML-escaped.
 
 ### Why key management is server-side
 
