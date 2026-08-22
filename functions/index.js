@@ -379,7 +379,7 @@ async function getAwardByNameAndYear(name, year) {
   return result;
 }
 
-const DEVELOPER_PORTAL_URL = 'https://developer.uractor.com/';
+const { DEVELOPER_PORTAL_URL, landingPage } = require('./landing-page');
 
 const ENDPOINT_LIST = [
   '/oscars/apikey=YOUR_API_KEY',
@@ -389,51 +389,6 @@ const ENDPOINT_LIST = [
   '/award/name={name}/apikey=YOUR_API_KEY',
   '/award/name={name}/year={year}/apikey=YOUR_API_KEY',
 ];
-
-/**
- * This host serves the API and nothing else. A person who lands here in a
- * browser still deserves a sentence telling them where to go, so the two
- * non-data routes below negotiate: JSON for clients, one line of HTML for
- * browsers. The inline SVG icon stops the browser requesting /favicon.ico,
- * which Firebase Hosting answers itself with an empty page.
- */
-function landingPage(heading, note) {
-  // `note` can contain the requested path, so it must never be trusted.
-  const escape = (value) =>
-    String(value).replace(
-      /[&<>"']/g,
-      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-    );
-
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>UrActor Academy Awards API</title>
-<meta name="robots" content="noindex">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230e1626'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23e3c567'%3E%E2%98%85%3C/text%3E%3C/svg%3E">
-<style>
-body{margin:0;min-height:100vh;display:grid;place-items:center;padding:2rem;
-background:#0e1626;color:#f2ece0;
-font-family:ui-serif,Georgia,'Times New Roman',serif;line-height:1.6;text-align:center}
-main{max-width:34rem}
-p{margin:0 0 .75rem}
-.star{color:#e3c567}
-a{color:#e3c567;text-underline-offset:.18em}
-a:focus-visible{outline:2px solid #e3c567;outline-offset:3px}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;color:#a9b4c8}
-</style>
-</head>
-<body>
-<main>
-<p><span class="star" aria-hidden="true">&#9733;</span> ${escape(heading)}</p>
-<p>Documentation and API keys: <a href="${DEVELOPER_PORTAL_URL}">developer.uractor.com</a></p>
-${note ? `<p><code>${escape(note)}</code></p>` : ''}
-</main>
-</body>
-</html>`;
-}
 
 /**
  * Order matters: a wildcard Accept header (curl, fetch, most clients) resolves
