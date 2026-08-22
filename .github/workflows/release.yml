@@ -1,0 +1,204 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      deploy_site:
+        description: Deploy the developer portal
+        type: boolean
+        default: false
+      deploy_api_host:
+        description: Deploy the API host static root
+        type: boolean
+        default: false
+      deploy_functions:
+        description: Deploy the Cloud Functions
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Never let two deploys of the same project overlap.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+  FIREBASE_PROJECT: uractordeveloper
+  FIREBASE_TOOLS: firebase-tools@14
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.decide.outputs.site }}
+      api_host: ${{ steps.decide.outputs.api_host }}
+      functions: ${{ steps.decide.outputs.functions }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # paths-filter needs the previous commit to diff a push against.
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            site:
+              - 'site/**'
+              - 'firebase.json'
+              - '.firebaserc'
+            api_host:
+              - 'api-public/**'
+              - 'firebase.json'
+              - '.firebaserc'
+            functions:
+              - 'functions/**'
+              - 'firebase.json'
+              - '.firebaserc'
+
+      # A manual run deploys exactly what was ticked; a push deploys what moved.
+      - name: Decide what to deploy
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "site=${{ inputs.deploy_site }}" >> "$GITHUB_OUTPUT"
+            echo "api_host=${{ inputs.deploy_api_host }}" >> "$GITHUB_OUTPUT"
+            echo "functions=${{ inputs.deploy_functions }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "site=${{ steps.filter.outputs.site }}" >> "$GITHUB_OUTPUT"
+            echo "api_host=${{ steps.filter.outputs.api_host }}" >> "$GITHUB_OUTPUT"
+            echo "functions=${{ steps.filter.outputs.functions }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Summarise
+        run: |
+          {
+            echo "### Deploy plan"
+            echo ""
+            echo "| Component | Deploying |"
+            echo "| --- | --- |"
+            echo "| Developer portal | ${{ steps.decide.outputs.site }} |"
+            echo "| API host | ${{ steps.decide.outputs.api_host }} |"
+            echo "| Functions | ${{ steps.decide.outputs.functions }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  site:
+    name: Deploy portal
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        working-directory: site
+        run: npm ci
+
+      # Never ship a build that has not passed the same gates as a PR.
+      - name: Type check, build and audit
+        working-directory: site
+        run: npm run verify
+
+      - name: Authenticate
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy hosting:developer
+        run: npx --yes $FIREBASE_TOOLS deploy --only hosting:developer --project "$FIREBASE_PROJECT" --non-interactive
+
+      - name: Verify the portal is serving
+        run: |
+          for url in / /docs/getting-started /reference /openapi.json; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "https://uractor-developer.web.app$url")
+            echo "$url -> $code"
+            [ "$code" = "200" ] || exit 1
+          done
+
+  api-host:
+    name: Deploy API host
+    needs: changes
+    if: needs.changes.outputs.api_host == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Authenticate
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy hosting:api
+        run: npx --yes $FIREBASE_TOOLS deploy --only hosting:api --project "$FIREBASE_PROJECT" --non-interactive
+
+  functions:
+    name: Deploy functions
+    needs: changes
+    if: needs.changes.outputs.functions == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install
+        working-directory: functions
+        run: npm ci
+
+      - name: Syntax check
+        working-directory: functions
+        run: node --check index.js
+
+      - name: Authenticate
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy functions
+        run: npx --yes $FIREBASE_TOOLS deploy --only functions --project "$FIREBASE_PROJECT" --non-interactive
+
+      # A deploy that reports success but breaks auth or routing is worse than a
+      # failed one, so prove the contract still holds.
+      - name: Smoke test the live API
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 https://api.uractor.com/)
+          [ "$code" = "200" ] || fail "root returned $code"
+
+          body=$(curl -sS --max-time 30 "https://api.uractor.com/oscars/year=2026/apikey=definitely-not-valid")
+          echo "$body" | grep -q 'Forbidden' || fail "an invalid key was not rejected: $body"
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 https://api.uractor.com/v1/account/key)
+          [ "$code" = "401" ] || fail "unauthenticated account read returned $code, expected 401"
+
+          echo "Live API responded correctly to all three checks."

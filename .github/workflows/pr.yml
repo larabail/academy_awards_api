@@ -1,0 +1,189 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [master]
+
+# Only the preview comment needs write access; everything else is read-only.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  FIREBASE_PROJECT: uractordeveloper
+
+jobs:
+  # Work out what the PR actually touched, so we only build what is relevant.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+      functions: ${{ steps.filter.outputs.functions }}
+      config: ${{ steps.filter.outputs.config }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            site:
+              - 'site/**'
+              - 'firebase.json'
+              - '.firebaserc'
+              - '.github/workflows/pr.yml'
+            functions:
+              - 'functions/**'
+              - 'firebase.json'
+              - '.firebaserc'
+              - '.github/workflows/pr.yml'
+            config:
+              - 'firebase.json'
+              - '.firebaserc'
+              - 'scripts/**'
+              - '.github/workflows/**'
+
+  config:
+    name: Firebase config
+    needs: changes
+    if: needs.changes.outputs.config == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Check hosting targets and runtime are consistent
+        run: node scripts/check-config.mjs
+
+  site:
+    name: Site
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        working-directory: site
+        run: npm ci
+
+      - name: Type check
+        working-directory: site
+        run: npm run check
+
+      - name: Build
+        working-directory: site
+        run: npm run build
+
+      # Structure, SEO, colour contrast, double-escaped entities and inline
+      # spacing. All of these render as valid HTML, so nothing else catches them.
+      - name: Accessibility, SEO and contrast audit
+        working-directory: site
+        run: npm run audit
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: site/dist
+          retention-days: 7
+
+  preview:
+    name: Preview
+    needs: [changes, site]
+    # Secrets are not available to pull requests from forks, so skip rather
+    # than fail the run.
+    if: >-
+      needs.changes.outputs.site == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: site/dist
+
+      # Deploys to a per-PR preview channel and posts the URL as a comment,
+      # updating the same comment on subsequent pushes.
+      - name: Deploy preview and comment
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ env.FIREBASE_PROJECT }}
+          target: developer
+          channelId: pr-${{ github.event.pull_request.number }}
+          expires: 7d
+          # Match the version the release workflow deploys with.
+          firebaseToolsVersion: '14'
+
+  functions:
+    name: Functions
+    needs: changes
+    if: needs.changes.outputs.functions == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # npm ci fails if package.json and the lockfile disagree, which is the
+      # main way a functions deploy breaks.
+      - name: Install
+        working-directory: functions
+        run: npm ci
+
+      - name: Syntax check
+        working-directory: functions
+        run: node --check index.js
+
+      - name: Check the deployed runtime is still supported
+        working-directory: functions
+        run: |
+          RUNTIME=$(node -p "require('./package.json').engines.node")
+          echo "functions runtime: node $RUNTIME"
+          if [ "$RUNTIME" -lt 20 ]; then
+            echo "::error::Node $RUNTIME is decommissioned for Cloud Functions and will block deploys"
+            exit 1
+          fi
+
+  # A single required check, so branch protection does not have to know which
+  # jobs ran. Skipped jobs are fine; failed or cancelled ones are not.
+  # `changes` is included deliberately: without it, a failure there would skip
+  # every other job and this gate would pass on a run that built nothing.
+  pr:
+    name: PR
+    needs: [changes, config, site, preview, functions]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify no job failed
+        run: |
+          RESULTS="${{ join(needs.*.result, ' ') }}"
+          echo "job results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
+              echo "::error::A required job did not succeed"
+              exit 1
+            fi
+          done
+          echo "All jobs that ran succeeded."
