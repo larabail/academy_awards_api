@@ -67,6 +67,16 @@ for (const file of files) {
     if (levels[i] - levels[i - 1] > 1) fail(`heading jumps h${levels[i - 1]} → h${levels[i]}`);
   }
 
+  // Astro drops the newline when a line of prose is followed by a line starting
+  // with an inline element, producing "seelimits and fair use". The words are
+  // right and the markup is valid, so only the rendered text reveals it.
+  // <span> is excluded: the route component joins a base URL and path on
+  // purpose, and that is the only place it is used adjacent to text.
+  for (const m of html.matchAll(/(.{0,30}[a-z,;:])<(a|code|strong|em)\b[^>]*>([^<]{0,20})/gi)) {
+    const before = text(m[1]).slice(-30);
+    fail(`missing space before <${m[2]}>: "${before}${m[3].trim()}"`);
+  }
+
   if (/<a[^>]*>\s*(click here|here|read more)\s*<\/a>/i.test(html)) fail('non-descriptive link text');
 
   // A double-escaped entity renders literally on the page. That is what happens
