@@ -1,5 +1,5 @@
 ---
-/** METHOD + path, with parameter placeholders picked out in foil. */
+/** METHOD and path, set as a standing head between two rules. */
 interface Props {
   method: string;
   path: string;
@@ -12,7 +12,7 @@ const parts = path.split(/(\{\w+\})/).filter(Boolean);
 ---
 
 <p class="route">
-  <span class="pill">{method}</span>
+  <span class="method">{method}</span>
   <code
     >{base}{
       parts.map((part) =>

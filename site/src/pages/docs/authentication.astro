@@ -1,13 +1,13 @@
 ---
 import DocPage from '../../layouts/DocPage.astro';
 import Panel from '../../components/Panel.astro';
-import { API_BASE } from '../../data/api';
+import { API_BASE, RATE_LIMIT } from '../../data/api';
 ---
 
 <DocPage
   title="Authentication"
   description="How API keys work in the UrActor Academy Awards API: path-segment keys, what a 403 means, and how to rotate a leaked key."
-  eyebrow="The basics &#8212; II"
+  label="The basics — II"
 >
   <p class="lede">
     One key per account. It goes in the path. It can be rotated at any time, and rotating it takes
@@ -32,7 +32,7 @@ import { API_BASE } from '../../data/api';
 
   <h2 id="failures">When it fails</h2>
   <p>
-    A missing, unknown or revoked key returns <span class="pill status-4">403</span> with the same
+    A missing, unknown or revoked key returns <span class="status status-4">403</span> with the same
     body in every case &mdash; the API does not tell you which of the three it was.
   </p>
 
@@ -41,18 +41,29 @@ import { API_BASE } from '../../data/api';
   <h2 id="browser">Calling it from a browser</h2>
   <p>
     Cross-origin requests are allowed, so the API can be called directly from front-end code. Be
-    aware of what that means: <strong
-      >any key you ship to a browser is public</strong
-    >. Anyone can read it out of your JavaScript bundle or their own network tab.
+    clear-eyed about what that means: <strong>any key you ship to a browser is public</strong>.
+    Anyone can read it out of your bundle or their own network tab. That is true of every API whose
+    key travels in the request &mdash; it is not a flaw you can configure away.
   </p>
-  <div class="note">
-    <span class="eyebrow">Recommendation</span>
+  <p>
+    What matters is how much a leaked key is worth, and here the answer is: very little. It grants
+    read access to public awards data and nothing else. Someone who takes yours can do exactly what
+    they could have done by signing up for their own in ten seconds.
+  </p>
+  <div class="aside">
+    <span class="label">What actually protects you</span>
     <p>
-      Call the API from your server and cache the result. If you do call it from the browser
-      anyway, use a key you are willing to see used by other people, and rotate it when you get
-      bored of that.
+      Every key is capped at <strong>{RATE_LIMIT.max} requests per {RATE_LIMIT.window}</strong>, so a
+      key someone else picks up cannot be used to hammer the API in your name. If your own traffic
+      starts returning <code>429</code> unexpectedly, that is worth investigating &mdash;
+      <a href="/account">rotate the key</a> and the old one stops working immediately.
     </p>
   </div>
+  <p>
+    Still, the better pattern is to call the API from your server and cache the result. You get to
+    keep the key out of public view, you serve your users faster, and you stay well clear of the
+    limit. See <a href="/docs/limits">limits and fair use</a>.
+  </p>
 
   <h2 id="rotation">Rotating a key</h2>
   <p>

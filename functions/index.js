@@ -7,7 +7,38 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 
 const app = express();
-app.use(cors());
+
+/**
+ * CORS is decided per path rather than globally.
+ *
+ * Data routes stay open to any origin, which is what a public read-only API for
+ * public data should do and what comparable APIs (TMDB) do. The key travelling
+ * in the URL is unavoidably visible to anyone using it from a browser; that is
+ * accepted, and the rate limit below is what bounds the consequences.
+ *
+ * Account routes are different: only the portal has any business calling them,
+ * so they are restricted to its origins.
+ */
+const PORTAL_ORIGINS = [
+  'https://developer.uractor.com',
+  // Default site and preview channels, e.g. uractor-developer--editorial-abc.web.app
+  /^https:\/\/uractor-developer(--[a-z0-9-]+)?\.web\.app$/,
+  'http://localhost:4321',
+];
+
+app.use(
+  cors((req, callback) => {
+    if (req.path.startsWith('/v1/account')) {
+      callback(null, {
+        origin: PORTAL_ORIGINS,
+        methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Authorization', 'Content-Type'],
+      });
+    } else {
+      callback(null, { origin: '*', methods: ['GET', 'OPTIONS'] });
+    }
+  }),
+);
 app.use(bodyParser.json());
 
 const serviceAccountPath = './serviceAccountKey.json';
@@ -142,6 +173,57 @@ app.delete('/v1/account/key', requireUser, async (req, res) => {
     return res.status(500).json({ error: 'Error revoking key' });
   }
 });
+
+/**
+ * Per-key rate limiting.
+ *
+ * Held in memory rather than Firestore, so it costs nothing per request — the
+ * point is to protect the bill, and a limiter that bills you on every call to
+ * do that defeats itself. The trade-off is that the window is per running
+ * instance, so the effective ceiling is RATE_MAX x live instances. That is why
+ * maxInstances is set on the export: together they give a bounded worst case.
+ *
+ * Firebase Hosting also caches successful GETs at the CDN, so repeated
+ * identical requests never reach this code. The limiter sees cache misses,
+ * which is exactly the traffic that costs money.
+ */
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_MAX = 60;
+const rateBuckets = new Map();
+
+function rateLimit(req, res, next) {
+  // Fall back to the caller's address so unkeyed routes are still covered.
+  const identity = req.params.apikey || req.ip || 'anonymous';
+  const now = Date.now();
+
+  let bucket = rateBuckets.get(identity);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateBuckets.set(identity, bucket);
+  }
+  bucket.count += 1;
+
+  if (bucket.count > RATE_MAX) {
+    const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    // A 429 must never be cached, or the CDN would serve it past the window.
+    res.set('Cache-Control', 'no-store');
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({
+      error: 'Too Many Requests',
+      limit: `${RATE_MAX} requests per minute`,
+      retryAfter,
+    });
+  }
+
+  // Keep the map from growing without bound on a long-lived instance.
+  if (rateBuckets.size > 5000) {
+    for (const [id, entry] of rateBuckets) {
+      if (now >= entry.resetAt) rateBuckets.delete(id);
+    }
+  }
+
+  return next();
+}
 
 async function checkApiKey(req, res, next) {
   const apiKey = req.params.apikey;
@@ -318,7 +400,7 @@ app.get('/', (req, res) => {
   );
 });
 
-app.get('/oscars/apikey=:apikey', checkApiKey, async (req, res) => {
+app.get('/oscars/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   try {
     const ref = db.ref('/oscars');
     const snapshot = await ref.once('value');
@@ -330,7 +412,7 @@ app.get('/oscars/apikey=:apikey', checkApiKey, async (req, res) => {
   }
 });
 
-app.get('/oscars/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
+app.get('/oscars/year=:year/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   const year = req.params.year;
   try {
     const ref = db.ref(`/oscars/${year}`);
@@ -347,7 +429,7 @@ app.get('/oscars/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
   }
 });
 
-app.get('/person/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
+app.get('/person/name=:name/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
   try {
     const data = await getPersonByName(name);
@@ -362,7 +444,7 @@ app.get('/person/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
   }
 });
 
-app.get('/movie/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
+app.get('/movie/name=:name/year=:year/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
   const year = req.params.year;
   try {
@@ -378,7 +460,7 @@ app.get('/movie/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, 
   }
 });
 
-app.get('/award/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
+app.get('/award/name=:name/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
   try {
     const data = await getAwardByName(name);
@@ -393,7 +475,7 @@ app.get('/award/name=:name/apikey=:apikey', checkApiKey, async (req, res) => {
   }
 });
 
-app.get('/award/name=:name/year=:year/apikey=:apikey', checkApiKey, async (req, res) => {
+app.get('/award/name=:name/year=:year/apikey=:apikey', rateLimit, checkApiKey, async (req, res) => {
   const name = decodeURIComponent(req.params.name);
   const year = req.params.year;
   try {
@@ -419,4 +501,10 @@ app.use((req, res) => {
   );
 });
 
-exports.app = functions.https.onRequest(app);
+/**
+ * maxInstances is the hard ceiling on what this API can ever cost. Each 1st gen
+ * instance serves one request at a time, so this caps concurrency, and with it
+ * the worst case if someone points a script at the archive endpoint. Raise it if
+ * legitimate traffic ever starts hitting the limit.
+ */
+exports.app = functions.runWith({ maxInstances: 10 }).https.onRequest(app);

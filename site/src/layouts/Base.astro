@@ -28,7 +28,6 @@ const fullTitle = path === '/' ? title : `${title} — UrActor Academy Awards AP
 const nav = [
   { href: '/docs/getting-started', label: 'Guides', key: 'guides' },
   { href: '/reference', label: 'Reference', key: 'reference' },
-  { href: '/account', label: 'API key', key: 'account' },
 ];
 ---
 
@@ -49,11 +48,12 @@ const nav = [
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary" />
 
-    <meta name="theme-color" content="#0e1626" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230e1626'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23e3c567'%3E%E2%98%85%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23131315'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='22' text-anchor='middle' fill='%23f0705a'%3EU%3C/text%3E%3C/svg%3E"
     />
+
+    <meta name="theme-color" content="#131315" />
 
     <script
       is:inline
@@ -74,10 +74,7 @@ const nav = [
 
     <header class="masthead">
       <div class="masthead-inner">
-        <a class="wordmark" href="/">
-          <span class="statuette" aria-hidden="true">&#9733;</span>
-          <span>UrActor <b>Awards API</b></span>
-        </a>
+        <a class="wordmark" href="/">UrActor <span>Awards API</span></a>
         <nav aria-label="Primary">
           <ul>
             {
@@ -89,6 +86,15 @@ const nav = [
                 </li>
               ))
             }
+            <li>
+              <a
+                class="nav-cta"
+                href="/account"
+                aria-current={section === 'account' ? 'true' : undefined}
+              >
+                Get an API key
+              </a>
+            </li>
           </ul>
         </nav>
       </div>
@@ -98,10 +104,7 @@ const nav = [
 
     <footer class="site-footer">
       <div class="site-footer-inner">
-        <p style="margin:0;margin-right:auto;">
-          <span aria-hidden="true">&#9733;</span> UrActor Academy Awards API — free for
-          non-commercial use.
-        </p>
+        <p>UrActor Academy Awards API &mdash; free for non-commercial use.</p>
         <nav aria-label="Footer">
           <ul>
             <li><a href="/docs/getting-started">Guides</a></li>

@@ -6,7 +6,7 @@ import { endpoints, API_BASE } from '../../data/api';
 <DocPage
   title="API reference"
   description="Every endpoint in the UrActor Academy Awards API, with parameters, examples and error responses."
-  eyebrow="The programme"
+  label="Reference"
   section="reference"
 >
   <p class="lede">
@@ -14,8 +14,8 @@ import { endpoints, API_BASE } from '../../data/api';
     route ends with your key as a path segment.
   </p>
 
-  <div class="note">
-    <span class="eyebrow">Machine readable</span>
+  <div class="aside">
+    <span class="label">Machine readable</span>
     <p>
       The same definitions are published as an OpenAPI 3.1 document at
       <a href="/openapi.json">/openapi.json</a>, generated from the source this page is built from.
@@ -23,12 +23,12 @@ import { endpoints, API_BASE } from '../../data/api';
   </div>
 
   <h2 id="endpoints">The endpoints</h2>
-  <ul class="cards ref-cards">
+  <ul class="index">
     {
       endpoints.map((e) => (
         <li>
           <a href={`/reference/${e.slug}`}>
-            <span class="num">&#8470; {e.number}</span>
+            <span class="num">{e.number}</span>
             <h3>{e.title}</h3>
             <p>{e.summary}</p>
             <code>
@@ -40,33 +40,3 @@ import { endpoints, API_BASE } from '../../data/api';
     }
   </ul>
 </DocPage>
-
-<style>
-  /* On cream stock the cards need their own palette rather than the navy one. */
-  .ref-cards {
-    background: var(--card-edge);
-    border-color: var(--card-edge);
-  }
-
-  .ref-cards a {
-    background: #fbf6ea;
-    color: var(--card-ink);
-  }
-
-  .ref-cards a:hover {
-    background: #fff;
-  }
-
-  .ref-cards h3 {
-    color: #7a5407;
-  }
-
-  .ref-cards p,
-  .ref-cards code {
-    color: var(--card-muted);
-  }
-
-  .ref-cards .num {
-    color: #8a6a1d;
-  }
-</style>

@@ -10,7 +10,7 @@ const person = endpoints[2];
 <DocPage
   title="Getting started"
   description="Take a key, put it in the path, ask for a ceremony. The three-minute introduction to the free UrActor Academy Awards API."
-  eyebrow="The basics &#8212; I"
+  label="The basics — I"
 >
   <p class="lede">
     This API serves Academy Awards data: {DATASET.ceremonies} ceremonies from {DATASET.firstYear} to {
@@ -33,8 +33,8 @@ const person = endpoints[2];
 
   <Panel label="The shape of every request" code={`${API_BASE}/{resource}/apikey=YOUR_API_KEY`} />
 
-  <div class="note">
-    <span class="eyebrow">Because of that</span>
+  <div class="aside">
+    <span class="label">Because of that</span>
     <p>
       Your key will appear in server logs, browser history and referrer headers like any other part
       of a URL. Treat it as a low-value credential: it grants read-only access to public awards data
@@ -66,7 +66,7 @@ const person = endpoints[2];
 
   <Panel label="cURL" code={exampleCurl(person)} />
 
-  <hr class="rule" aria-hidden="true" />
+  <hr />
 
   <h2 id="next">Where to go next</h2>
   <ul>

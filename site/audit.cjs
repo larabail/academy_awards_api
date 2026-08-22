@@ -68,12 +68,74 @@ for (const file of files) {
   }
 
   if (/<a[^>]*>\s*(click here|here|read more)\s*<\/a>/i.test(html)) fail('non-descriptive link text');
+
+  // A double-escaped entity renders literally on the page. That is what happens
+  // when "&#8212;" is passed through a component attribute: the & is escaped
+  // again, so the reader sees the markup instead of an em dash. Single entities
+  // in the source are fine — the browser decodes those.
+  const doubleEscaped = html.match(/&amp;(#\d+|[a-z]{2,10});/i);
+  if (doubleEscaped) fail(`double-escaped entity renders as text: "${doubleEscaped[0]}"`);
 }
 
 console.log(`audited ${files.length} pages`);
+
+// ---------------------------------------------------------------- contrast --
+// Text that matches its background is invisible but perfectly valid markup, so
+// markup checks cannot catch it. Compute the real WCAG ratio for each
+// foreground/background pair the design actually uses.
+const tokens = fs.readFileSync(path.join(__dirname, 'src/styles/tokens.css'), 'utf8');
+const token = (name) => {
+  const m = tokens.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{3,8})`));
+  return m ? m[1] : null;
+};
+
+function luminance(hex) {
+  const v = hex.replace('#', '');
+  const full = v.length === 3 ? v.split('').map((c) => c + c).join('') : v;
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+const ratio = (a, b) => {
+  const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+};
+
+// [foreground, background, minimum, what it is used for]
+const PAIRS = [
+  ['paper', 'ground', 4.5, 'body text'],
+  ['paper-dim', 'ground', 4.5, 'secondary text'],
+  ['paper-faint', 'ground', 3, 'labels and captions'],
+  ['spot', 'ground', 4.5, 'links'],
+  ['ok', 'ground', 4.5, '2xx status'],
+  ['warn', 'ground', 4.5, '4xx status'],
+  ['bad', 'ground', 4.5, '5xx status'],
+  ['paper', 'ground-sunken', 4.5, 'text on input fields'],
+  ['paper', 'ground-raised', 4.5, 'text on raised surfaces'],
+];
+
+console.log('\ncontrast:');
+for (const [fg, bg, min, use] of PAIRS) {
+  const a = token(fg);
+  const b = token(bg);
+  if (!a || !b) {
+    problems.push(`token missing for contrast check: --${fg} / --${bg}`);
+    continue;
+  }
+  const r = ratio(a, b);
+  const pass = r >= min;
+  console.log(
+    `  ${pass ? 'ok  ' : 'FAIL'} --${fg} on --${bg}  ${r.toFixed(2)}:1 (min ${min})  ${use}`,
+  );
+  if (!pass) problems.push(`--${fg} on --${bg} is ${r.toFixed(2)}:1, below ${min} (${use})`);
+}
+
 if (problems.length) {
   console.log('\nissues:');
   for (const p of problems) console.log('  - ' + p);
   process.exit(1);
 }
-console.log('no structural accessibility or SEO issues found');
+console.log('\nno structural accessibility, SEO or contrast issues found');

@@ -73,6 +73,22 @@ Account endpoints are versioned and take a Firebase ID token as
 Machine-readable description: <https://developer.uractor.com/openapi.json>,
 generated at build time from `site/src/data/api.ts`.
 
+### Rate limiting and CORS
+
+Every key is capped at **60 requests per minute**, returning `429` with `Retry-After`.
+The counter is held in memory per function instance rather than in Firestore, so
+it costs nothing per request — a limiter that billed you on every call to
+protect you from bills would defeat itself. The trade-off is that it is
+approximate: the ceiling is 60 x live instances. `maxInstances: 10` on the
+export is what makes the worst case bounded, and it is the single most effective
+cost control here.
+
+CORS is decided per path. Data routes stay open to any origin, which is what a
+read-only API for public data should do and what comparable APIs (TMDB) do — a
+key used from a browser is unavoidably visible, and the rate limit is what bounds
+the consequences. Account routes are restricted to the portal's own origins,
+since nothing else should ever call them.
+
 ### The API host serves no UI
 
 `api.uractor.com` has no site on it — `api-public/` deliberately contains no

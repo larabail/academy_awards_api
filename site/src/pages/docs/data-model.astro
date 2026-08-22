@@ -36,7 +36,7 @@ const withNotes = `{
 <DocPage
   title="The data model"
   description="Ceremonies, categories and nominations: what primary and secondary mean, why they swap by category, and how to read the Oscars data returned by the API."
-  eyebrow="The basics &#8212; III"
+  label="The basics — III"
 >
   <p class="lede">
     Three nested things: a ceremony holds categories, a category holds nominations. Everything the
@@ -59,8 +59,8 @@ const withNotes = `{
     >. The leading acting award appears as &ldquo;Best Actor in a Leading Role&rdquo; in the early
     years and &ldquo;Best Performance by an Actor in a Leading Role&rdquo; more recently.
   </p>
-  <div class="note">
-    <span class="eyebrow">Why that matters</span>
+  <div class="aside">
+    <span class="label">Why that matters</span>
     <p>
       It is the reason the category endpoints match on a <strong>substring</strong> rather than the
       whole name. Searching for <code>Actor in a Leading Role</code> finds both spellings; searching
