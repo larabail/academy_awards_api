@@ -175,6 +175,15 @@ jobs:
         working-directory: functions
         run: node --check index.js
 
+      # index.js cannot be imported without credentials -- it initialises
+      # firebase-admin at module scope -- so the parts worth testing live
+      # beside it in files that do no I/O. The landing page is one: it renders
+      # the request path into HTML, which makes escaping it a security
+      # property rather than a detail.
+      - name: Test
+        working-directory: functions
+        run: node --test *.test.mjs
+
       - name: Check the deployed runtime is still supported
         working-directory: functions
         run: |
