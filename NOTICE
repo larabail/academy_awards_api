@@ -1,0 +1,56 @@
+# Notices
+
+## Licence
+
+This project is licensed under the GNU Affero General Public License v3.0. The
+full text is in [LICENSE](LICENSE).
+
+Copyright (C) 2026 Lara Bailen Boluda
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+### What that means in practice
+
+You may use, modify and redistribute this code, including commercially. What you
+may not do is take it closed.
+
+Section 13 is the reason this licence was chosen over MIT or GPL: **if you run a
+modified version of this software as a network service, you must offer its
+source to the users of that service.** Deploying a fork as a hosted API counts.
+Running it unmodified for yourself does not oblige you to publish anything.
+
+## The awards data
+
+Nomination and winner data is factual record, gathered from Wikipedia, which is
+licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+Facts themselves are not subject to copyright, and the licence above covers the
+software rather than the data.
+
+If you redistribute the dataset, attribute Wikipedia and preserve CC BY-SA.
+
+## Trademarks
+
+The licence grants rights to the software. It grants no rights to any name or
+mark.
+
+"UrActor" and the UrActor logo are marks of the project author. A fork must not
+present itself as UrActor or imply endorsement.
+
+"Oscar", "Oscars", "Academy Award" and "Academy Awards" are trademarks of the
+Academy of Motion Picture Arts and Sciences. This project is not affiliated
+with, endorsed by, or sponsored by the Academy.
+
+## Dependencies
+
+Third-party dependencies are listed in `functions/package.json` and
+`site/package.json` and remain under their own licences.
