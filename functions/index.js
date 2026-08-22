@@ -43,8 +43,11 @@ app.use(bodyParser.json());
 
 const serviceAccountPath = './serviceAccountKey.json';
 
-// Cloud Functions injects credentials at runtime, so the service account key is
-// only needed when running the emulator outside Google infrastructure.
+// Cloud Functions supplies application default credentials at runtime, and
+// `gcloud auth application-default login` supplies them locally, so a key file
+// should not be needed at all. It is still honoured if present, but never
+// deployed: firebase.json excludes it from the functions upload, because
+// shipping one and then rotating it takes the API down.
 function resolveCredential() {
   try {
     return admin.credential.cert(require(serviceAccountPath));

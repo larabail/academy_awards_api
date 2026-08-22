@@ -319,22 +319,49 @@ API is unaffected and needs no DNS change.
 
 ## Credentials
 
-`functions/serviceAccountKey.json` is git-ignored. Deployed functions
-authenticate through application default credentials; the file is only needed to
-run the emulator locally. CI authenticates with the `FIREBASE_SERVICE_ACCOUNT`
-secret.
+**You should not need a service account key to work on this project.**
 
-> A service account key was committed early in this project's history. It has
-> been purged from every commit, but **rewriting history does not undo an
-> exposure** — anyone who cloned the repository beforehand still holds it. That
-> key must be treated as compromised and rotated in
-> **Google Cloud Console → IAM & Admin → Service Accounts**.
+- **Deployed functions** authenticate through application default credentials,
+  supplied by the runtime.
+- **CI** authenticates with the `FIREBASE_SERVICE_ACCOUNT` secret.
+- **Locally**, use your own credentials rather than downloading a key:
+
+  ```bash
+  gcloud auth application-default login
+  ```
+
+  That gives the emulator the same application default credentials the deployed
+  function uses, without a long-lived key sitting on your disk.
+
+If a `functions/serviceAccountKey.json` does exist, the code will prefer it, so
+the option remains for anyone who needs it. It is git-ignored, and
+`firebase.json` also excludes it from the functions upload — the file is
+otherwise deployed from disk rather than from the index, which once shipped a
+key inside the function and took the API down when that key was rotated.
+
+> Keep both of those exclusions even when no key file exists. They guard against
+> a file created later, not one that is present today, and this repository is
+> public: a committed key is harvested within minutes. Two different keys were
+> committed here before, which is exactly how the guard came to be needed.
+
+A service account key was committed early in this project's history. It was
+purged from every commit and both affected keys have been rotated. Rewriting
+history does not undo an exposure, which is why rotation was the part that
+mattered.
 
 See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
 
 ## Local development
 
 ```bash
+gcloud auth application-default login   # once, instead of downloading a key
 npm --prefix functions install
 firebase emulators:start --only functions,hosting
+```
+
+The portal runs separately:
+
+```bash
+npm --prefix site install
+npm --prefix site run dev
 ```
