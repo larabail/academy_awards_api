@@ -118,6 +118,83 @@ enumerate anyone else's key. Keys are generated with `crypto.randomUUID()`.
 > `max-age=600` to function GET responses, which would let the CDN serve one
 > user's key to another.
 
+## Continuous integration
+
+Two workflows, both of which only touch the parts of the repo that actually
+changed.
+
+### `PR` — `.github/workflows/pr.yml`
+
+Runs on every pull request into `master`.
+
+| Job | Runs when | What it does |
+| --- | --- | --- |
+| `config` | firebase config or scripts change | Checks every hosting target is mapped to a site, public dirs exist, and the API host has no `index.html` |
+| `site` | `site/**`, `firebase.json`, `.firebaserc` | `npm ci`, type check, build, then the accessibility/SEO/contrast audit |
+| `preview` | site built successfully | Deploys to a per-PR Firebase preview channel and **comments the URL on the PR**, updating the same comment on later pushes |
+| `functions` | `functions/**`, `firebase.json`, `.firebaserc` | `npm ci` (which fails if the lockfile drifted), syntax check, and a guard that the declared Node runtime is still supported |
+| `pr` | always | Aggregates the above into one check suitable for branch protection |
+
+Touch only `functions/` and the site is never built; touch only `site/` and the
+functions job is skipped.
+
+The `preview` job is skipped for pull requests from forks, because secrets are
+not available there — skipped rather than failed, so the run stays green.
+
+### `Release` — `.github/workflows/release.yml`
+
+Runs on push to `master`, and can be run manually with tick boxes to force a
+specific deploy.
+
+| Job | Deploys when | Target |
+| --- | --- | --- |
+| `site` | `site/**` changed | `hosting:developer`, after re-running the full verify |
+| `api-host` | `api-public/**` changed | `hosting:api` |
+| `functions` | `functions/**` changed | `functions` |
+
+**If nothing in `functions/` changed, functions are not deployed** — and the same
+for each of the others. A change to `firebase.json` or `.firebaserc` counts as a
+change to everything, because it is.
+
+Both deploy jobs verify their work afterwards rather than trusting the exit
+code: the portal deploy re-requests four pages, and the functions deploy checks
+that the root responds, that an invalid key is still rejected, and that an
+unauthenticated account read still returns `401`.
+
+### Required setup
+
+One secret, `FIREBASE_SERVICE_ACCOUNT`, containing the JSON key of a service
+account with permission to deploy. Do **not** reuse
+`functions/serviceAccountKey.json` — it was committed in earlier history.
+
+```bash
+PROJECT=uractordeveloper
+SA=github-actions-deployer
+
+gcloud iam service-accounts create "$SA" \
+  --project "$PROJECT" --display-name "GitHub Actions deployer"
+
+EMAIL="$SA@$PROJECT.iam.gserviceaccount.com"
+for ROLE in \
+  roles/firebase.admin \
+  roles/cloudfunctions.admin \
+  roles/iam.serviceAccountUser \
+  roles/artifactregistry.admin \
+  roles/cloudbuild.builds.editor \
+  roles/serviceusage.serviceUsageConsumer
+do
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member "serviceAccount:$EMAIL" --role "$ROLE" --condition None
+done
+
+gcloud iam service-accounts keys create key.json --iam-account "$EMAIL"
+gh secret set FIREBASE_SERVICE_ACCOUNT --repo larabail/academy_awards_api < key.json
+rm key.json
+```
+
+Set the required status check for branch protection to **`PR / PR`**, which is
+the aggregate job.
+
 ## Deploying
 
 ```bash
@@ -128,6 +205,9 @@ firebase deploy --only hosting:developer   # portal
 firebase deploy --only hosting:api         # API host
 firebase deploy --only functions           # Express app
 ```
+
+Day to day this happens through CI; the commands above are for a manual deploy.
+`node scripts/check-config.mjs` runs the same configuration checks CI does.
 
 The portal must be built before deploying it; `site/dist` is git-ignored.
 
